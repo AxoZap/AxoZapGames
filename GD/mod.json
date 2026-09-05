@@ -5,7 +5,7 @@
   },
   "id": "axozap.demon_list_sync",
   "name": "AxoZap Demon Sync",
-  "version": "v1.1.1",
+  "version": "v1.2.0",
   "developer": "AxoZap",
   "description": "Private mod to send completed demons to AxoZap's Demon List website.",
   "settings": {

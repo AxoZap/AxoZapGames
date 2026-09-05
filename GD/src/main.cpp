@@ -49,10 +49,11 @@ protected:
 	CCMenuItemToggler* m_weeklyToggle = nullptr;
 	CCMenuItemToggler* m_gauntletToggle = nullptr;
 	CCMenuItemToggler* m_eventToggle = nullptr;
+	CCMenuItemToggler* m_secretToggle = nullptr;
 	async::TaskHolder<web::WebResponse> m_listener;
 
 	bool init(GJGameLevel* level) {
-		if (!Popup::init(300.f, 260.f)) return false;
+		if (!Popup::init(300.f, 290.f)) return false;
 
 		m_level = level;
 		this->setTitle("Send to Demon List");
@@ -81,16 +82,17 @@ protected:
 		m_videoInput->setPosition({ width / 2 + 40, height - 85 });
 		m_mainLayer->addChild(m_videoInput);
 
-		// 3. Checkboxes (2 columns): Moon / Weekly / Gauntlet / Event
-		float toggleY = height - 125.f;
+		// 3. Checkboxes: Moon / Weekly / Gauntlet / Event / Secret (Hidden)
+		float toggleY = height - 122.f;
 		bool isPlat = m_level->isPlatformer() || m_level->m_levelLength == 5;
 		bool isWeekly = m_level->m_dailyID.value() > 0;
 		bool isGauntlet = m_level->m_gauntletLevel || m_level->m_gauntletLevel2;
 
-		m_moonToggle     = makeToggle("Moon (Plat)", 35.f,  toggleY,        isPlat);
-		m_weeklyToggle   = makeToggle("Weekly",      165.f, toggleY,        isWeekly);
-		m_gauntletToggle = makeToggle("Gauntlet",    35.f,  toggleY - 30.f, isGauntlet);
-		m_eventToggle    = makeToggle("Event",       165.f, toggleY - 30.f, false);
+		m_moonToggle     = makeToggle("Moon (Plat)",      35.f,  toggleY,         isPlat);
+		m_weeklyToggle   = makeToggle("Weekly",           165.f, toggleY,         isWeekly);
+		m_gauntletToggle = makeToggle("Gauntlet",         35.f,  toggleY - 26.f,  isGauntlet);
+		m_eventToggle    = makeToggle("Event",            165.f, toggleY - 26.f,  false);
+		m_secretToggle   = makeToggle("Secret (Hidden)",  35.f,  toggleY - 52.f,  false);
 
 		// 4. Send Button
 		auto sendBtnBtn = ButtonSprite::create("Send");
@@ -143,6 +145,7 @@ protected:
 		demonObj["gauntlet"] = m_gauntletToggle->isToggled();
 		demonObj["weekly"] = m_weeklyToggle->isToggled();
 		demonObj["event"] = m_eventToggle->isToggled();
+		demonObj["hidden"] = m_secretToggle->isToggled();
 		demonObj["levelId"] = std::to_string(m_level->m_levelID.value());
 
 		std::string attStr = m_attemptsInput->getString();
