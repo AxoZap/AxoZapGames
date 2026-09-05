@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Demon } from '../App';
+import { EyeOff } from 'lucide-react';
 
 interface AddDemonFormProps {
   onAdd: (demon: Omit<Demon, 'id'>) => void;
@@ -14,6 +15,7 @@ export function AddDemonForm({ onAdd, onCancel }: AddDemonFormProps) {
     gauntlet: false,
     weekly: false,
     event: false,
+    hidden: false,
     attempts: 0,
     videoUrl: '',
     levelId: '',
@@ -47,6 +49,7 @@ export function AddDemonForm({ onAdd, onCancel }: AddDemonFormProps) {
         gauntlet: formData.gauntlet,
         weekly: formData.weekly,
         event: formData.event,
+        hidden: formData.hidden,
       };
       
       if (formData.difficulty === 'Extreme') {
@@ -69,6 +72,7 @@ export function AddDemonForm({ onAdd, onCancel }: AddDemonFormProps) {
         gauntlet: false,
         weekly: false,
         event: false,
+        hidden: false,
         attempts: 0,
         videoUrl: '',
         levelId: '',
@@ -186,7 +190,7 @@ export function AddDemonForm({ onAdd, onCancel }: AddDemonFormProps) {
         </div>
 
         {/* Checkboxes */}
-        <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <label className="form-checkbox">
             <input
               type="checkbox"
@@ -212,6 +216,24 @@ export function AddDemonForm({ onAdd, onCancel }: AddDemonFormProps) {
               onChange={(e) => setFormData({ ...formData, event: e.target.checked })}
             />
             <span>Event</span>
+          </label>
+
+          {/* Secret / Hidden Demon Toggle */}
+          <label className="form-checkbox" style={{
+            background: formData.hidden ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+            border: formData.hidden ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border)',
+            padding: '0.4rem 0.75rem',
+            borderRadius: '6px',
+            transition: 'all 0.2s',
+          }}>
+            <input
+              type="checkbox"
+              checked={formData.hidden}
+              onChange={(e) => setFormData({ ...formData, hidden: e.target.checked })}
+            />
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: formData.hidden ? '#ef4444' : 'var(--text-primary)', fontWeight: formData.hidden ? 600 : 400 }}>
+              <EyeOff size={15} /> Demon Hidden (Secret)
+            </span>
           </label>
         </div>
 

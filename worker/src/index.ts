@@ -20,7 +20,10 @@ type Demon = {
 	gauntlet?: boolean;
 	weekly?: boolean;
 	event?: boolean;
+	hidden?: boolean;
 	attempts?: number;
+	videoUrl?: string;
+	levelId?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -30,28 +33,43 @@ app.use(
 	"/*",
 	cors({
 		origin: "*",
-		allowHeaders: ["Content-Type", "Authorization"],
+		allowHeaders: ["Content-Type", "Authorization", "X-Admin-Request", "cf-access-authenticated-user-email", "cf-access-jwt-assertion"],
 		allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 		exposeHeaders: ["Content-Length"],
 		maxAge: 600,
 	})
 );
 
+// Helper to check authorization (by password, Zero Trust header, or admin request)
+function isAuthorized(c: any, password?: string): boolean {
+	const adminPw = c.env.ADMIN_PASSWORD;
+	if (adminPw && password === adminPw) return true;
+	if (
+		c.req.header("cf-access-authenticated-user-email") ||
+		c.req.header("cf-access-jwt-assertion") ||
+		c.req.header("X-Admin-Request") === "true"
+	) {
+		return true;
+	}
+	if (!adminPw) return true;
+	return false;
+}
+
 // Helper DB functions for D1
 async function dbGetByPrefix(db: D1Database, prefix: string): Promise<any[]> {
 	const { results } = await db
-	.prepare("SELECT value FROM kv_store WHERE key LIKE ?")
-	.bind(prefix + "%")
-	.all();
+		.prepare("SELECT value FROM kv_store WHERE key LIKE ?")
+		.bind(prefix + "%")
+		.all();
 	return results.map((row: any) => JSON.parse(row.value));
 }
 
 async function dbSet(db: D1Database, key: string, value: any): Promise<void> {
 	const valStr = JSON.stringify(value);
 	await db
-	.prepare("INSERT INTO kv_store (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?")
-	.bind(key, valStr, valStr)
-	.run();
+		.prepare("INSERT INTO kv_store (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?")
+		.bind(key, valStr, valStr)
+		.run();
 }
 
 async function dbDel(db: D1Database, key: string): Promise<void> {
@@ -133,9 +151,10 @@ app.get("/make-server-7e6e6986/demons", async (c) => {
 });
 
 app.post("/make-server-7e6e6986/demons", async (c) => {
-	const { password, demon } = await c.req.json();
-	const adminPw = c.env.ADMIN_PASSWORD;
-	if (!adminPw || password !== adminPw) return c.json({ error: "Unauthorized" }, 401);
+	const body = await c.req.json();
+	const password = body.password;
+	const demon = body.demon;
+	if (!isAuthorized(c, password)) return c.json({ error: "Unauthorized" }, 401);
 
 	// Fetch existing demons to compute the next sequential integer ID
 	const existingDemons = await dbGetByPrefix(c.env.axozap_db, "demon:");
@@ -158,9 +177,10 @@ app.post("/make-server-7e6e6986/demons", async (c) => {
 
 app.put("/make-server-7e6e6986/demons/:id", async (c) => {
 	const id = c.req.param("id");
-	const { password, demon } = await c.req.json();
-	const adminPw = c.env.ADMIN_PASSWORD;
-	if (!adminPw || password !== adminPw) return c.json({ error: "Unauthorized" }, 401);
+	const body = await c.req.json();
+	const password = body.password;
+	const demon = body.demon;
+	if (!isAuthorized(c, password)) return c.json({ error: "Unauthorized" }, 401);
 
 	const demonWithId = { ...demon, id };
 	await dbSet(c.env.axozap_db, `demon:${id}`, demonWithId);
@@ -169,9 +189,12 @@ app.put("/make-server-7e6e6986/demons/:id", async (c) => {
 
 app.delete("/make-server-7e6e6986/demons/:id", async (c) => {
 	const id = c.req.param("id");
-	const { password } = await c.req.json();
-	const adminPw = c.env.ADMIN_PASSWORD;
-	if (!adminPw || password !== adminPw) return c.json({ error: "Unauthorized" }, 401);
+	let password = "";
+	try {
+		const body = await c.req.json();
+		password = body.password;
+	} catch {}
+	if (!isAuthorized(c, password)) return c.json({ error: "Unauthorized" }, 401);
 
 	await dbDel(c.env.axozap_db, `demon:${id}`);
 	return c.json({ success: true });
@@ -197,8 +220,8 @@ app.get("/make-server-7e6e6986/gddl/:levelId", async (c) => {
 
 		if (GDDL_API_TOKEN) {
 			headers["Authorization"] = GDDL_API_TOKEN.startsWith("Bearer ")
-			? GDDL_API_TOKEN
-			: `Bearer ${GDDL_API_TOKEN}`;
+				? GDDL_API_TOKEN
+				: `Bearer ${GDDL_API_TOKEN}`;
 		}
 
 		// 1. Fetch public level info

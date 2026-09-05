@@ -3,7 +3,7 @@ import { DemonList } from './components/DemonList';
 import { AddDemonForm } from './components/AddDemonForm';
 import { EditDemonForm } from './components/EditDemonForm';
 import { DemonFilters } from './components/DemonFilters';
-import { Flame, Lock, Loader2 } from 'lucide-react';
+import { Flame, Loader2 } from 'lucide-react';
 
 export interface Demon {
   id: string;
@@ -13,6 +13,7 @@ export interface Demon {
   gauntlet: boolean;
   weekly: boolean;
   event: boolean;
+  hidden?: boolean; // Secret / Hidden demon
   attempts?: number; // Optional now - only for Extreme demons
   placement?: number;
   videoUrl?: string;
@@ -23,13 +24,13 @@ export interface Demon {
 const API_URL = "https://axozap-backend.peteystillwell.workers.dev/make-server-7e6e6986";
 
 export default function App() {
+  // Check if current URL path is /Admin or /admin
+  const isAdmin = typeof window !== 'undefined' && window.location.pathname.toLowerCase().startsWith('/admin');
+
   const [demons, setDemons] = useState<Demon[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDemon, setEditingDemon] = useState<Demon | null>(null);
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [password, setPassword] = useState('');
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [filters, setFilters] = useState({
     difficulty: 'All',
     rating: 'All',
@@ -73,8 +74,9 @@ export default function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Admin-Request': 'true',
         },
-        body: JSON.stringify({ password, demon }),
+        body: JSON.stringify({ demon }),
       });
 
       if (response.ok) {
@@ -92,8 +94,8 @@ export default function App() {
   };
 
   const handleDeleteDemon = async (id: string) => {
-    if (!isUnlocked) {
-      alert('You must be unlocked to delete demons!');
+    if (!isAdmin) {
+      alert('You must be in Admin mode to delete demons!');
       return;
     }
 
@@ -106,8 +108,8 @@ export default function App() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          'X-Admin-Request': 'true',
         },
-        body: JSON.stringify({ password }),
       });
 
       if (response.ok) {
@@ -135,8 +137,9 @@ export default function App() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'X-Admin-Request': 'true',
         },
-        body: JSON.stringify({ password, demon: updatedDemon }),
+        body: JSON.stringify({ demon: updatedDemon }),
       });
 
       if (response.ok) {
@@ -153,103 +156,6 @@ export default function App() {
     }
   };
 
-  const handleClearAll = async () => {
-    if (!isUnlocked) {
-      alert('You must be unlocked to clear demons!');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/demons/clear`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ password }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log(`✅ Server cleared ${result.count} demons from database`);
-        await loadDemons();
-      } else {
-        const error = await response.json();
-        console.error('Clear failed:', error);
-      }
-    } catch (error) {
-      console.error('Error clearing demons:', error);
-    }
-  };
-
-  const handleNuclearReset = async () => {
-    if (!isUnlocked) {
-      alert('You must be unlocked to nuke the database!');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/nuclear-reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ password }),
-      });
-
-      if (response.ok) {
-        await loadDemons();
-      } else {
-        const error = await response.json();
-        console.error('Nuclear reset failed:', error);
-      }
-    } catch (error) {
-      console.error('Error during nuclear reset:', error);
-    }
-  };
-
-  const handleUnlock = async () => {
-    try {
-      const response = await fetch(`${API_URL}/verify-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ password }),
-      });
-
-      const data = await response.json();
-
-      if (data.valid) {
-        setIsUnlocked(true);
-        setShowPasswordPrompt(false);
-      } else {
-        alert('Incorrect password!');
-        setPassword('');
-      }
-    } catch (error) {
-      console.error('Error verifying password:', error);
-      alert('Failed to verify password. Please try again.');
-    }
-  };
-
-  const handleAddButtonClick = () => {
-    if (isUnlocked) {
-      setShowAddForm(!showAddForm);
-    } else {
-      setShowPasswordPrompt(true);
-    }
-  };
-
-  const handleToggleLock = () => {
-    if (isUnlocked) {
-      setIsUnlocked(false);
-      setShowAddForm(false);
-      setPassword('');
-    } else {
-      setShowPasswordPrompt(true);
-    }
-  };
-
   // Pre-calculate placements (1-based index when sorted by insertion order/ID)
   const placementMap = useMemo(() => {
     const sorted = [...demons].sort((a, b) => parseInt(a.id) - parseInt(b.id));
@@ -263,10 +169,10 @@ export default function App() {
       const nameGroups = new Map<string, Demon[]>();
       demons.forEach(d => {
         const baseName = d.name.toLowerCase()
-        .replace(/\s*-\s*gauntlet/i, '')
-        .replace(/\s*-\s*weekly/i, '')
-        .replace(/\s*-\s*event/i, '')
-        .trim();
+          .replace(/\s*-\s*gauntlet/i, '')
+          .replace(/\s*-\s*weekly/i, '')
+          .replace(/\s*-\s*event/i, '')
+          .trim();
         if (!nameGroups.has(baseName)) nameGroups.set(baseName, []);
         nameGroups.get(baseName)!.push(d);
       });
@@ -291,148 +197,127 @@ export default function App() {
   }, [demons, filters.unique]);
 
   const filteredAndSortedDemons = demons
-  .map(demon => ({ ...demon, placement: placementMap.get(demon.id) }))
-  .filter((demon) => {
-    if (filters.unique && duplicatesToHide.has(demon.id)) return false;
-    if (filters.difficulty !== 'All' && demon.difficulty !== filters.difficulty) return false;
-    if (filters.rating !== 'All' && demon.rating !== filters.rating) return false;
-    if (filters.searchQuery && !demon.name.toLowerCase().includes(filters.searchQuery.toLowerCase())) return false;
+    .map(demon => ({ ...demon, placement: placementMap.get(demon.id) }))
+    .filter((demon) => {
+      if (filters.unique && duplicatesToHide.has(demon.id)) return false;
+      if (filters.difficulty !== 'All' && demon.difficulty !== filters.difficulty) return false;
+      if (filters.rating !== 'All' && demon.rating !== filters.rating) return false;
+      if (filters.searchQuery && !demon.name.toLowerCase().includes(filters.searchQuery.toLowerCase())) return false;
 
-    const hasSpecialFilter = filters.gauntlet || filters.weekly || filters.event || filters.nonSpecial;
-    if (hasSpecialFilter) {
-      const isNonSpecial = !demon.gauntlet && !demon.weekly && !demon.event;
-      let matchesSpecial = false;
-      if (filters.gauntlet && demon.gauntlet) matchesSpecial = true;
-      if (filters.weekly && demon.weekly) matchesSpecial = true;
-      if (filters.event && demon.event) matchesSpecial = true;
-      if (filters.nonSpecial && isNonSpecial) matchesSpecial = true;
-      if (!matchesSpecial) return false;
-    }
+      const hasSpecialFilter = filters.gauntlet || filters.weekly || filters.event || filters.nonSpecial;
+      if (hasSpecialFilter) {
+        const isNonSpecial = !demon.gauntlet && !demon.weekly && !demon.event;
+        let matchesSpecial = false;
+        if (filters.gauntlet && demon.gauntlet) matchesSpecial = true;
+        if (filters.weekly && demon.weekly) matchesSpecial = true;
+        if (filters.event && demon.event) matchesSpecial = true;
+        if (filters.nonSpecial && isNonSpecial) matchesSpecial = true;
+        if (!matchesSpecial) return false;
+      }
 
-    return true;
-  })
-  .sort((a, b) => {
-    let comparison = 0;
+      return true;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
 
-    if (sortBy === 'order') {
-      comparison = parseInt(a.id) - parseInt(b.id);
-    } else if (sortBy === 'name') {
-      comparison = a.name.localeCompare(b.name);
-    } else if (sortBy === 'attempts') {
-      comparison = (a.attempts || 0) - (b.attempts || 0);
-    } else if (sortBy === 'difficulty') {
-      const difficultyOrder = { Easy: 1, Medium: 2, Hard: 3, Insane: 4, Extreme: 5 };
-      comparison = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
-    }
+      if (sortBy === 'order') {
+        comparison = parseInt(a.id) - parseInt(b.id);
+      } else if (sortBy === 'name') {
+        comparison = a.name.localeCompare(b.name);
+      } else if (sortBy === 'attempts') {
+        comparison = (a.attempts || 0) - (b.attempts || 0);
+      } else if (sortBy === 'difficulty') {
+        const difficultyOrder = { Easy: 1, Medium: 2, Hard: 3, Insane: 4, Extreme: 5 };
+        comparison = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+      }
 
-    return sortOrder === 'asc' ? comparison : -comparison;
-  });
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
 
   if (loading) {
     return (
       <div className="loading">
-      <Loader2 size={48} />
-      <p>Loading demons...</p>
+        <Loader2 size={48} />
+        <p>Loading demons...</p>
       </div>
     );
   }
 
   return (
     <div className="app">
-    {/* Lock/Unlock button - top right */}
-    <button
-    onClick={handleToggleLock}
-    className="lock-button"
-    title={isUnlocked ? "Lock (hide admin controls)" : "Unlock (show admin controls)"}
-    >
-    <Lock size={20} />
-    </button>
+      <header className="header">
+        <div className="header-content">
+          <Flame className="logo" size={32} />
+          <h1>AxoZap's Demons</h1>
+          {isAdmin && (
+            <span style={{
+              background: 'linear-gradient(135deg, #ef4444, #f97316)',
+              color: '#fff',
+              padding: '0.2rem 0.65rem',
+              borderRadius: '9999px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)',
+              marginLeft: '0.5rem',
+            }}>
+              Admin
+            </span>
+          )}
+        </div>
+        <p className="subtitle">Geometry Dash</p>
+      </header>
 
-    {/* Password prompt modal */}
-    {showPasswordPrompt && (
-      <div className="modal-overlay" onClick={() => setShowPasswordPrompt(false)}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-      <h2>Enter Admin Password</h2>
-      <input
-      type="password"
-      value={password}
-      onChange={(e) => setPassword(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') handleUnlock();
-      }}
-      placeholder="Password"
-      autoFocus
-      autoComplete="off"
-      />
-      <div className="modal-actions">
-      <button onClick={handleUnlock} className="btn">
-      Unlock
-      </button>
-      <button onClick={() => setShowPasswordPrompt(false)} className="btn btn-secondary">
-      Cancel
-      </button>
-      </div>
-      </div>
-      </div>
-    )}
+      <main className="container">
+        {isAdmin && (
+          <div className="admin-controls">
+            <button onClick={() => setShowAddForm(!showAddForm)} className="btn">
+              {showAddForm ? 'Close Add Form' : 'Add Demon'}
+            </button>
+          </div>
+        )}
 
-    <header className="header">
-    <div className="header-content">
-    <Flame className="logo" size={32} />
-    <h1>AxoZap's Demons</h1>
-    </div>
-    <p className="subtitle">Geometry Dash</p>
-    </header>
+        {/* Add Form */}
+        {showAddForm && isAdmin && (
+          <div style={{ marginBottom: '2rem' }}>
+            <AddDemonForm onAdd={handleAddDemon} onCancel={() => setShowAddForm(false)} />
+          </div>
+        )}
 
-    <main className="container">
-    {isUnlocked && (
-      <div className="admin-controls">
-      <button onClick={handleAddButtonClick} className="btn">
-      Add Demon
-      </button>
-      </div>
-    )}
+        {/* Edit Form Modal */}
+        {editingDemon && (
+          <EditDemonForm
+            demon={editingDemon}
+            onSave={handleSaveEdit}
+            onCancel={() => setEditingDemon(null)}
+          />
+        )}
 
-    {/* Add Form */}
-    {showAddForm && isUnlocked && (
-      <div style={{ marginBottom: '2rem' }}>
-      <AddDemonForm onAdd={handleAddDemon} onCancel={() => setShowAddForm(false)} />
-      </div>
-    )}
+        {/* Filters */}
+        <DemonFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSortChange={setSortBy}
+          onSortOrderChange={setSortOrder}
+        />
 
-    {/* Edit Form Modal */}
-    {editingDemon && (
-      <EditDemonForm
-      demon={editingDemon}
-      onSave={handleSaveEdit}
-      onCancel={() => setEditingDemon(null)}
-      />
-    )}
-
-    {/* Filters */}
-    <DemonFilters
-    filters={filters}
-    onFiltersChange={setFilters}
-    sortBy={sortBy}
-    sortOrder={sortOrder}
-    onSortChange={setSortBy}
-    onSortOrderChange={setSortOrder}
-    />
-
-    {/* Demon List */}
-    <div style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-    Showing {filteredAndSortedDemons.length} demon{filteredAndSortedDemons.length !== 1 ? 's' : ''}
-    </div>
-    <DemonList
-    demons={filteredAndSortedDemons}
-    allDemons={demons}
-    onDelete={handleDeleteDemon}
-    onEdit={handleEditDemon}
-    isUnlocked={isUnlocked}
-    showFilteredRanks={showFilteredRanks}
-    onToggleRanks={() => setShowFilteredRanks(r => !r)}
-    />
-    </main>
+        {/* Demon List */}
+        <div style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+          Showing {filteredAndSortedDemons.length} demon{filteredAndSortedDemons.length !== 1 ? 's' : ''}
+        </div>
+        <DemonList
+          demons={filteredAndSortedDemons}
+          allDemons={demons}
+          onDelete={handleDeleteDemon}
+          onEdit={handleEditDemon}
+          isUnlocked={isAdmin}
+          showFilteredRanks={showFilteredRanks}
+          onToggleRanks={() => setShowFilteredRanks(r => !r)}
+        />
+      </main>
     </div>
   );
 }

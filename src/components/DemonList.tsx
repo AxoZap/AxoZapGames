@@ -1,5 +1,5 @@
 import { Demon } from '../App';
-import { Trophy, Zap, Calendar, Target, Trash2, Star, Moon, Edit, Youtube, Loader2, ExternalLink, Hash } from 'lucide-react';
+import { Trophy, Zap, Calendar, Target, Trash2, Star, Moon, Edit, Youtube, Loader2, ExternalLink, Hash, EyeOff } from 'lucide-react';
 import { useMemo, useState } from 'react';
 const API_URL = "https://axozap-backend.peteystillwell.workers.dev/make-server-7e6e6986";
 
@@ -94,17 +94,17 @@ function GddlInline({ demon }: { demon: Demon }) {
     }}>
       {/* GDDL Tier */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '2rem' }}>
-      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tier</span>
-      <span style={{ fontWeight: 700, color: tierColor(data?.tier ?? null) }}>
-      {data?.tier != null ? Math.round(data.tier) : '?'}
-      </span>
+        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tier</span>
+        <span style={{ fontWeight: 700, color: tierColor(data?.tier ?? null) }}>
+          {data?.tier != null ? Math.round(data.tier) : '?'}
+        </span>
       </div>
       {/* Avg Enjoyment */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '2.2rem' }}>
-      <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Avg Enj</span>
-      <span style={{ fontWeight: 700, color: data?.avgEnjoyment != null ? '#f59e0b' : 'var(--text-secondary)' }}>
-      {data?.avgEnjoyment != null ? Math.round(data.avgEnjoyment) : '—'}
-      </span>
+        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Avg Enj</span>
+        <span style={{ fontWeight: 700, color: data?.avgEnjoyment != null ? '#f59e0b' : 'var(--text-secondary)' }}>
+          {data?.avgEnjoyment != null ? Math.round(data.avgEnjoyment) : '—'}
+        </span>
       </div>
 
       <div style={{ width: '1px', height: '1.75rem', background: 'var(--border)' }} />
@@ -175,7 +175,7 @@ export function DemonList({ demons, allDemons, onDelete, onEdit, isUnlocked, sho
   if (demons.length === 0) {
     return (
       <div className="empty-state" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-        <p>No demons added yet. Click "Add Demon" to get started!</p>
+        <p>No demons found.</p>
       </div>
     );
   }
@@ -222,105 +222,166 @@ export function DemonList({ demons, allDemons, onDelete, onEdit, isUnlocked, sho
             </tr>
           </thead>
           <tbody>
-            {demons.map((demon, index) => (
-              <tr
-                key={demon.id}
-                style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                <td style={{ padding: '1rem 1.25rem' }}>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
-                    #{showFilteredRanks ? index + 1 : (demon.placement || index + 1)}
-                  </span>
-                </td>
+            {demons.map((demon, index) => {
+              const isHidden = demon.hidden;
+              const hideDetails = isHidden && !isUnlocked;
 
-                <td style={{ padding: '1rem 1.25rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ color: '#fff', fontWeight: 600 }}>{demon.name}</span>
-                    {demon.videoUrl && (
-                      <a
-                        href={demon.videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: '#ef4444', display: 'flex', alignItems: 'center' }}
-                        title="Watch Video"
-                      >
-                        <Youtube size={18} />
-                      </a>
-                    )}
-                  </div>
-                </td>
-
-                <td style={{ padding: '1rem 1.25rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span className={`tag tag-${demon.difficulty.toLowerCase()}`}>{demon.difficulty}</span>
-                    {demonTrophies.get(`${demon.id}-difficulty`) && <Trophy size={16} color="#eab308" fill="#eab308" />}
-                  </div>
-                </td>
-
-                <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    {demon.rating === 'Star'
-                      ? <Star size={18} color="#fbbf24" fill="#fbbf24" />
-                      : <Moon size={18} color="#a78bfa" fill="#a78bfa" />}
-                  </div>
-                </td>
-
-                <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                    {demon.gauntlet && (
-                      <>
-                        <Target size={18} color="#22d3ee" title="Gauntlet" />
-                        {demonTrophies.get(`${demon.id}-gauntlet`) && <Trophy size={14} color="#eab308" fill="#eab308" />}
-                      </>
-                    )}
-                    {demon.weekly && (
-                      <>
-                        <Calendar size={18} color="#3b82f6" title="Weekly" />
-                        {demonTrophies.get(`${demon.id}-weekly`) && <Trophy size={14} color="#eab308" fill="#eab308" />}
-                      </>
-                    )}
-                    {demon.event && (
-                      <>
-                        <Zap size={18} color="#eab308" title="Event" />
-                        {demonTrophies.get(`${demon.id}-event`) && <Trophy size={14} color="#eab308" fill="#eab308" />}
-                      </>
-                    )}
-                  </div>
-                </td>
-
-                <td style={{ padding: '1rem 1.25rem' }}>
-                  {demon.attempts !== undefined ? (
-                    <span style={{
-                      color: demon.difficulty === 'Extreme' ? '#fbbf24' : 'var(--text-secondary)',
-                      fontWeight: demon.difficulty === 'Extreme' ? '600' : '400',
-                    }}>
-                      {demon.attempts.toLocaleString()}
+              return (
+                <tr
+                  key={demon.id}
+                  style={{
+                    borderBottom: '1px solid var(--border)',
+                    transition: 'background 0.2s',
+                    background: isHidden && isUnlocked ? 'rgba(239, 68, 68, 0.04)' : undefined,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = isHidden && isUnlocked ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255,255,255,0.03)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = isHidden && isUnlocked ? 'rgba(239, 68, 68, 0.04)' : 'transparent')}
+                >
+                  {/* Rank */}
+                  <td style={{ padding: '1rem 1.25rem' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                      #{showFilteredRanks ? index + 1 : (demon.placement || index + 1)}
                     </span>
-                  ) : (
-                    <span style={{ color: 'var(--text-secondary)', opacity: 0.5 }}>—</span>
-                  )}
-                </td>
-
-                <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                  <GddlInline demon={demon} />
-                </td>
-
-                {isUnlocked && (
-                  <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-                      <button onClick={() => onEdit(demon.id)} className="edit-btn" style={actionBtnStyle} title="Edit">
-                        <Edit size={16} color="#84cc16" />
-                      </button>
-                      <button onClick={() => onDelete(demon.id)} className="delete-btn" style={actionBtnStyle} title="Delete">
-                        <Trash2 size={16} color="#ef4444" />
-                      </button>
-                    </div>
                   </td>
-                )}
-              </tr>
-            ))}
+
+                  {/* Name */}
+                  <td style={{ padding: '1rem 1.25rem' }}>
+                    {hideDetails ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-secondary)', fontStyle: 'italic', opacity: 0.75 }}>
+                        <EyeOff size={16} />
+                        <span>Demon Hidden</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span style={{ color: '#fff', fontWeight: 600 }}>{demon.name}</span>
+                        {isHidden && (
+                          <span style={{
+                            background: 'rgba(239, 68, 68, 0.2)',
+                            color: '#ef4444',
+                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                            padding: '0.1rem 0.45rem',
+                            borderRadius: '4px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                          }}>
+                            <EyeOff size={11} /> Hidden
+                          </span>
+                        )}
+                        {demon.videoUrl && (
+                          <a
+                            href={demon.videoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#ef4444', display: 'flex', alignItems: 'center' }}
+                            title="Watch Video"
+                          >
+                            <Youtube size={18} />
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </td>
+
+                  {/* Difficulty */}
+                  <td style={{ padding: '1rem 1.25rem' }}>
+                    {hideDetails ? (
+                      <span style={{ color: 'var(--text-secondary)', opacity: 0.35 }}>—</span>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span className={`tag tag-${demon.difficulty.toLowerCase()}`}>{demon.difficulty}</span>
+                        {demonTrophies.get(`${demon.id}-difficulty`) && <Trophy size={16} color="#eab308" fill="#eab308" />}
+                      </div>
+                    )}
+                  </td>
+
+                  {/* Rating */}
+                  <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                    {hideDetails ? (
+                      <span style={{ color: 'var(--text-secondary)', opacity: 0.35 }}>—</span>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        {demon.rating === 'Star'
+                          ? <Star size={18} color="#fbbf24" fill="#fbbf24" />
+                          : <Moon size={18} color="#a78bfa" fill="#a78bfa" />}
+                      </div>
+                    )}
+                  </td>
+
+                  {/* Special */}
+                  <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                    {hideDetails ? (
+                      <span style={{ color: 'var(--text-secondary)', opacity: 0.35 }}>—</span>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                        {demon.gauntlet && (
+                          <>
+                            <Target size={18} color="#22d3ee" title="Gauntlet" />
+                            {demonTrophies.get(`${demon.id}-gauntlet`) && <Trophy size={14} color="#eab308" fill="#eab308" />}
+                          </>
+                        )}
+                        {demon.weekly && (
+                          <>
+                            <Calendar size={18} color="#3b82f6" title="Weekly" />
+                            {demonTrophies.get(`${demon.id}-weekly`) && <Trophy size={14} color="#eab308" fill="#eab308" />}
+                          </>
+                        )}
+                        {demon.event && (
+                          <>
+                            <Zap size={18} color="#eab308" title="Event" />
+                            {demonTrophies.get(`${demon.id}-event`) && <Trophy size={14} color="#eab308" fill="#eab308" />}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </td>
+
+                  {/* Attempts */}
+                  <td style={{ padding: '1rem 1.25rem' }}>
+                    {hideDetails ? (
+                      <span style={{ color: 'var(--text-secondary)', opacity: 0.35 }}>—</span>
+                    ) : (
+                      demon.attempts !== undefined ? (
+                        <span style={{
+                          color: demon.difficulty === 'Extreme' ? '#fbbf24' : 'var(--text-secondary)',
+                          fontWeight: demon.difficulty === 'Extreme' ? '600' : '400',
+                        }}>
+                          {demon.attempts.toLocaleString()}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)', opacity: 0.5 }}>—</span>
+                      )
+                    )}
+                  </td>
+
+                  {/* GDDL */}
+                  <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                    {hideDetails ? (
+                      <span style={{ color: 'var(--text-secondary)', opacity: 0.35 }}>—</span>
+                    ) : (
+                      <GddlInline demon={demon} />
+                    )}
+                  </td>
+
+                  {/* Admin Actions */}
+                  {isUnlocked && (
+                    <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                        <button onClick={() => onEdit(demon.id)} className="edit-btn" style={actionBtnStyle} title="Edit">
+                          <Edit size={16} color="#84cc16" />
+                        </button>
+                        <button onClick={() => onDelete(demon.id)} className="delete-btn" style={actionBtnStyle} title="Delete">
+                          <Trash2 size={16} color="#ef4444" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Demon } from '../App';
+import { EyeOff } from 'lucide-react';
 
 interface EditDemonFormProps {
   demon: Demon;
@@ -8,7 +9,10 @@ interface EditDemonFormProps {
 }
 
 export function EditDemonForm({ demon, onSave, onCancel }: EditDemonFormProps) {
-  const [formData, setFormData] = useState<Demon>(demon);
+  const [formData, setFormData] = useState<Demon>({
+    ...demon,
+    hidden: demon.hidden || false,
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,34 +73,62 @@ export function EditDemonForm({ demon, onSave, onCancel }: EditDemonFormProps) {
           </div>
 
           <div className="form-group">
-            <div className="form-checkbox">
-              <input
-                type="checkbox"
-                id="edit-gauntlet"
-                checked={formData.gauntlet}
-                onChange={(e) => setFormData({ ...formData, gauntlet: e.target.checked })}
-              />
-              <label htmlFor="edit-gauntlet">Gauntlet</label>
-            </div>
+            <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="form-checkbox">
+                <input
+                  type="checkbox"
+                  id="edit-gauntlet"
+                  checked={formData.gauntlet}
+                  onChange={(e) => setFormData({ ...formData, gauntlet: e.target.checked })}
+                />
+                <label htmlFor="edit-gauntlet">Gauntlet</label>
+              </div>
 
-            <div className="form-checkbox">
-              <input
-                type="checkbox"
-                id="edit-weekly"
-                checked={formData.weekly}
-                onChange={(e) => setFormData({ ...formData, weekly: e.target.checked })}
-              />
-              <label htmlFor="edit-weekly">Weekly</label>
-            </div>
+              <div className="form-checkbox">
+                <input
+                  type="checkbox"
+                  id="edit-weekly"
+                  checked={formData.weekly}
+                  onChange={(e) => setFormData({ ...formData, weekly: e.target.checked })}
+                />
+                <label htmlFor="edit-weekly">Weekly</label>
+              </div>
 
-            <div className="form-checkbox">
-              <input
-                type="checkbox"
-                id="edit-event"
-                checked={formData.event}
-                onChange={(e) => setFormData({ ...formData, event: e.target.checked })}
-              />
-              <label htmlFor="edit-event">Event</label>
+              <div className="form-checkbox">
+                <input
+                  type="checkbox"
+                  id="edit-event"
+                  checked={formData.event}
+                  onChange={(e) => setFormData({ ...formData, event: e.target.checked })}
+                />
+                <label htmlFor="edit-event">Event</label>
+              </div>
+
+              {/* Secret / Hidden Demon Toggle */}
+              <div className="form-checkbox" style={{
+                background: formData.hidden ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                border: formData.hidden ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border)',
+                padding: '0.35rem 0.65rem',
+                borderRadius: '6px',
+                transition: 'all 0.2s',
+              }}>
+                <input
+                  type="checkbox"
+                  id="edit-hidden"
+                  checked={formData.hidden || false}
+                  onChange={(e) => setFormData({ ...formData, hidden: e.target.checked })}
+                />
+                <label htmlFor="edit-hidden" style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  color: formData.hidden ? '#ef4444' : 'var(--text-primary)',
+                  fontWeight: formData.hidden ? 600 : 400,
+                  cursor: 'pointer'
+                }}>
+                  <EyeOff size={15} /> Demon Hidden (Secret)
+                </label>
+              </div>
             </div>
           </div>
 
