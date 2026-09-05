@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Demon } from '../App';
-import { EyeOff } from 'lucide-react';
 
 interface EditDemonFormProps {
   demon: Demon;
@@ -73,8 +72,8 @@ export function EditDemonForm({ demon, onSave, onCancel }: EditDemonFormProps) {
           </div>
 
           <div className="form-group">
-            <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <div className="form-checkbox">
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="form-checkbox" style={{ marginBottom: 0 }}>
                 <input
                   type="checkbox"
                   id="edit-gauntlet"
@@ -84,7 +83,7 @@ export function EditDemonForm({ demon, onSave, onCancel }: EditDemonFormProps) {
                 <label htmlFor="edit-gauntlet">Gauntlet</label>
               </div>
 
-              <div className="form-checkbox">
+              <div className="form-checkbox" style={{ marginBottom: 0 }}>
                 <input
                   type="checkbox"
                   id="edit-weekly"
@@ -94,7 +93,7 @@ export function EditDemonForm({ demon, onSave, onCancel }: EditDemonFormProps) {
                 <label htmlFor="edit-weekly">Weekly</label>
               </div>
 
-              <div className="form-checkbox">
+              <div className="form-checkbox" style={{ marginBottom: 0 }}>
                 <input
                   type="checkbox"
                   id="edit-event"
@@ -104,29 +103,15 @@ export function EditDemonForm({ demon, onSave, onCancel }: EditDemonFormProps) {
                 <label htmlFor="edit-event">Event</label>
               </div>
 
-              {/* Secret / Hidden Demon Toggle */}
-              <div className="form-checkbox" style={{
-                background: formData.hidden ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                border: formData.hidden ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border)',
-                padding: '0.35rem 0.65rem',
-                borderRadius: '6px',
-                transition: 'all 0.2s',
-              }}>
+              <div className="form-checkbox" style={{ marginBottom: 0 }}>
                 <input
                   type="checkbox"
                   id="edit-hidden"
                   checked={formData.hidden || false}
                   onChange={(e) => setFormData({ ...formData, hidden: e.target.checked })}
                 />
-                <label htmlFor="edit-hidden" style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  color: formData.hidden ? '#ef4444' : 'var(--text-primary)',
-                  fontWeight: formData.hidden ? 600 : 400,
-                  cursor: 'pointer'
-                }}>
-                  <EyeOff size={15} /> Demon Hidden (Secret)
+                <label htmlFor="edit-hidden" style={{ color: formData.hidden ? '#ef4444' : undefined, fontWeight: formData.hidden ? 600 : undefined }}>
+                  Hidden
                 </label>
               </div>
             </div>
