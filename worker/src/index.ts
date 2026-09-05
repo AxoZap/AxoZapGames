@@ -147,7 +147,30 @@ app.post("/make-server-7e6e6986/verify-password", async (c) => {
 app.get("/make-server-7e6e6986/demons", async (c) => {
 	const demons = await dbGetByPrefix(c.env.axozap_db, "demon:");
 	const sorted = demons.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-	return c.json(sorted);
+
+	const isAdmin = isAuthorized(c);
+	if (isAdmin) {
+		return c.json(sorted);
+	}
+
+	// For public visitors, strip all private information from hidden demons before returning JSON
+	const sanitized = sorted.map((d: Demon) => {
+		if (d.hidden) {
+			return {
+				id: d.id,
+				name: "Demon Hidden",
+				hidden: true,
+				difficulty: "Easy",
+				rating: "Star",
+				gauntlet: false,
+				weekly: false,
+				event: false,
+			};
+		}
+		return d;
+	});
+
+	return c.json(sanitized);
 });
 
 app.post("/make-server-7e6e6986/demons", async (c) => {

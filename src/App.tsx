@@ -53,7 +53,11 @@ export default function App() {
   const loadDemons = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/demons`);
+      const headers: Record<string, string> = {};
+      if (isAdmin) {
+        headers['X-Admin-Request'] = 'true';
+      }
+      const response = await fetch(`${API_URL}/demons`, { headers });
 
       if (response.ok) {
         const data = await response.json();
