@@ -4,6 +4,9 @@ import { AddDemonForm } from './components/AddDemonForm';
 import { EditDemonForm } from './components/EditDemonForm';
 import { DemonFilters } from './components/DemonFilters';
 import { Flame, Loader2 } from 'lucide-react';
+import Project55Page from './components/Project55Page';
+import Project55Admin from './components/Project55Admin';
+import { adminHeaders, getCFAccessToken } from './adminAuth';
 
 export interface Demon {
   id: string;
@@ -26,6 +29,12 @@ const API_URL = "https://axozap-backend.peteystillwell.workers.dev/make-server-7
 export default function App() {
   // Check if current URL path is /Admin or /admin
   const isAdmin = typeof window !== 'undefined' && window.location.pathname.toLowerCase().startsWith('/admin');
+  const isProject55 = typeof window !== 'undefined' && window.location.pathname.toLowerCase().startsWith('/project55');
+
+  // Render the Project55 public page
+  if (isProject55 && !isAdmin) {
+    return <Project55Page />;
+  }
 
   const [demons, setDemons] = useState<Demon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,9 +62,11 @@ export default function App() {
   const loadDemons = async () => {
     try {
       setLoading(true);
+      // For admin: pass the CF Access JWT so the worker returns hidden demons too
       const headers: Record<string, string> = {};
       if (isAdmin) {
-        headers['X-Admin-Request'] = 'true';
+        const token = getCFAccessToken();
+        if (token) headers['cf-access-jwt-assertion'] = token;
       }
       const response = await fetch(`${API_URL}/demons`, { headers });
 
@@ -76,10 +87,7 @@ export default function App() {
     try {
       const response = await fetch(`${API_URL}/demons`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Request': 'true',
-        },
+        headers: adminHeaders(),
         body: JSON.stringify({ demon }),
       });
 
@@ -110,10 +118,7 @@ export default function App() {
     try {
       const response = await fetch(`${API_URL}/demons/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Request': 'true',
-        },
+        headers: adminHeaders(),
       });
 
       if (response.ok) {
@@ -139,10 +144,7 @@ export default function App() {
     try {
       const response = await fetch(`${API_URL}/demons/${updatedDemon.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Request': 'true',
-        },
+        headers: adminHeaders(),
         body: JSON.stringify({ demon: updatedDemon }),
       });
 
@@ -159,6 +161,8 @@ export default function App() {
       alert('Failed to update demon. Please try again.');
     }
   };
+
+
 
   // Pre-calculate placements (1-based index when sorted by insertion order/ID)
   const placementMap = useMemo(() => {
@@ -321,6 +325,13 @@ export default function App() {
           showFilteredRanks={showFilteredRanks}
           onToggleRanks={() => setShowFilteredRanks(r => !r)}
         />
+
+        {/* Project55 admin panel */}
+        {isAdmin && (
+          <div style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '2rem' }}>
+            <Project55Admin />
+          </div>
+        )}
       </main>
     </div>
   );
