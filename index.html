@@ -6,24 +6,19 @@
     <title>AxoZap Demons</title>
 
     <script>
-      (function protectConsole() {
-        window.eval = () => null;
-        window.Function = () => () => {};
+      (function spamClearConsole() {
+        // Cache native clear before anything can tamper with it
+        const nativeClear = console.clear.bind(console);
 
-        const blank = () => {};
-        console.log = blank;
-        console.info = blank;
-        console.warn = blank;
-        console.error = blank;
-        console.table = blank;
+        // Clear on every screen repaint (~60-144 times per second)
+        function floodClear() {
+          nativeClear();
+          requestAnimationFrame(floodClear);
+        }
+        requestAnimationFrame(floodClear);
 
-        setInterval(() => {
-          console.clear();
-        }, 200);
-
-        setInterval(() => {
-          (function() { return false; }['constructor']('debugger')['call']());
-        }, 500);
+        // Fallback interval (every 10ms) in case the tab is inactive
+        setInterval(nativeClear, 10);
       })();
     </script>
   </head>
