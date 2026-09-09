@@ -5,7 +5,8 @@ import { GoogleAuth } from "google-auth-library";
 
 type Bindings = {
 	axozap_db: D1Database;
-	ADMIN_PASSWORD?: string;
+	CF_ACCESS_TEAM_DOMAIN?: string; // e.g. "https://axozap.cloudflareaccess.com"
+	CF_ACCESS_AUD?: string;          // Application Audience (AUD) tag from Cloudflare Access
 	GOOGLE_SERVICE_ACCOUNT?: string;
 	GOOGLE_SHEET_ID?: string;
 	GOOGLE_SHEET_NAME?: string;
@@ -33,26 +34,86 @@ app.use(
 	"/*",
 	cors({
 		origin: "*",
-		allowHeaders: ["Content-Type", "Authorization", "X-Admin-Request", "cf-access-authenticated-user-email", "cf-access-jwt-assertion"],
+		allowHeaders: ["Content-Type", "Authorization", "cf-access-jwt-assertion"],
 		allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 		exposeHeaders: ["Content-Length"],
 		maxAge: 600,
 	})
 );
 
-// Helper to check authorization (by password, Zero Trust header, or admin request)
-function isAuthorized(c: any, password?: string): boolean {
-	const adminPw = c.env.ADMIN_PASSWORD;
-	if (adminPw && password === adminPw) return true;
-	if (
-		c.req.header("cf-access-authenticated-user-email") ||
-		c.req.header("cf-access-jwt-assertion") ||
-		c.req.header("X-Admin-Request") === "true"
-	) {
-		return true;
+// Validate a Cloudflare Access JWT properly using the team's public JWKS.
+// Returns true only if the token is signed by Cloudflare and the AUD matches.
+async function isAuthorized(c: any): Promise<boolean> {
+	const teamDomain = c.env.CF_ACCESS_TEAM_DOMAIN;
+	const aud = c.env.CF_ACCESS_AUD;
+
+	// Both secrets must be configured – fail closed if missing
+	if (!teamDomain || !aud) {
+		console.error("CF_ACCESS_TEAM_DOMAIN or CF_ACCESS_AUD not configured");
+		return false;
 	}
-	if (!adminPw) return true;
-	return false;
+
+	const token =
+		c.req.header("cf-access-jwt-assertion") || // passed by frontend JS
+		c.req.header("Cf-Access-Jwt-Assertion");   // injected by CF Access proxy
+
+	if (!token) return false;
+
+	try {
+		// Fetch Cloudflare's public key set for this team
+		const jwksUrl = `${teamDomain}/cdn-cgi/access/certs`;
+		const jwksRes = await fetch(jwksUrl, { cf: { cacheEverything: true, cacheTtl: 3600 } } as any);
+		if (!jwksRes.ok) {
+			console.error("Failed to fetch JWKS:", jwksRes.status);
+			return false;
+		}
+		const { keys } = (await jwksRes.json()) as { keys: JsonWebKey[] };
+
+		// Try each key until one verifies
+		for (const jwk of keys) {
+			try {
+				const cryptoKey = await crypto.subtle.importKey(
+					"jwk",
+					jwk,
+					{ name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+					false,
+					["verify"]
+				);
+
+				// Decode and verify the JWT
+				const parts = token.split(".");
+				if (parts.length !== 3) continue;
+
+				const [headerB64, payloadB64, sigB64] = parts;
+				const signingInput = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
+
+				// Convert base64url signature to ArrayBuffer
+				const sigBytes = Uint8Array.from(
+					atob(sigB64.replace(/-/g, "+").replace(/_/g, "/")),
+					(c) => c.charCodeAt(0)
+				);
+
+				const valid = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", cryptoKey, sigBytes, signingInput);
+				if (!valid) continue;
+
+				// Verify payload claims
+				const payload = JSON.parse(atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/")));
+				const now = Math.floor(Date.now() / 1000);
+
+				if (payload.exp && payload.exp < now) return false;   // expired
+				if (payload.nbf && payload.nbf > now) return false;   // not yet valid
+				if (!payload.aud?.includes(aud)) return false;         // wrong app
+
+				return true;
+			} catch {
+				// Key didn't work, try next
+			}
+		}
+		return false;
+	} catch (err) {
+		console.error("JWT validation error:", err);
+		return false;
+	}
 }
 
 // Helper DB functions for D1
@@ -135,49 +196,26 @@ async function appendDemonToSheet(env: Bindings, demon: Demon) {
 // Routes
 app.get("/make-server-7e6e6986/health", (c) => c.json({ status: "ok" }));
 
-app.post("/make-server-7e6e6986/verify-password", async (c) => {
-	const { password } = await c.req.json();
-	const adminPw = c.env.ADMIN_PASSWORD;
-	if (!adminPw) {
-		return c.json({ valid: false, error: "ADMIN_PASSWORD not configured on server" }, 500);
-	}
-	return c.json({ valid: password === adminPw });
-});
-
 app.get("/make-server-7e6e6986/demons", async (c) => {
 	const demons = await dbGetByPrefix(c.env.axozap_db, "demon:");
 	const sorted = demons.sort((a, b) => parseInt(a.id) - parseInt(b.id));
 
-	const isAdmin = isAuthorized(c);
-	if (isAdmin) {
+	const admin = await isAuthorized(c);
+	if (admin) {
 		return c.json(sorted);
 	}
 
-	// For public visitors, strip all private information from hidden demons before returning JSON
-	const sanitized = sorted.map((d: Demon) => {
-		if (d.hidden) {
-			return {
-				id: d.id,
-				name: "Demon Hidden",
-				hidden: true,
-				difficulty: "Easy",
-				rating: "Star",
-				gauntlet: false,
-				weekly: false,
-				event: false,
-			};
-		}
-		return d;
-	});
-
+	// Public: hidden demons are completely invisible — removed from the list.
+	// IDs are reassigned sequentially so there are no gaps that reveal hidden entries.
+	const visible = sorted.filter((d: Demon) => !d.hidden);
+	const sanitized = visible.map((d: Demon, i: number) => ({ ...d, id: String(i + 1) }));
 	return c.json(sanitized);
 });
 
 app.post("/make-server-7e6e6986/demons", async (c) => {
+	if (!await isAuthorized(c)) return c.json({ error: "Unauthorized" }, 401);
 	const body = await c.req.json();
-	const password = body.password;
 	const demon = body.demon;
-	if (!isAuthorized(c, password)) return c.json({ error: "Unauthorized" }, 401);
 
 	// Fetch existing demons to compute the next sequential integer ID
 	const existingDemons = await dbGetByPrefix(c.env.axozap_db, "demon:");
@@ -199,11 +237,10 @@ app.post("/make-server-7e6e6986/demons", async (c) => {
 });
 
 app.put("/make-server-7e6e6986/demons/:id", async (c) => {
+	if (!await isAuthorized(c)) return c.json({ error: "Unauthorized" }, 401);
 	const id = c.req.param("id");
 	const body = await c.req.json();
-	const password = body.password;
 	const demon = body.demon;
-	if (!isAuthorized(c, password)) return c.json({ error: "Unauthorized" }, 401);
 
 	const demonWithId = { ...demon, id };
 	await dbSet(c.env.axozap_db, `demon:${id}`, demonWithId);
@@ -211,14 +248,8 @@ app.put("/make-server-7e6e6986/demons/:id", async (c) => {
 });
 
 app.delete("/make-server-7e6e6986/demons/:id", async (c) => {
+	if (!await isAuthorized(c)) return c.json({ error: "Unauthorized" }, 401);
 	const id = c.req.param("id");
-	let password = "";
-	try {
-		const body = await c.req.json();
-		password = body.password;
-	} catch {}
-	if (!isAuthorized(c, password)) return c.json({ error: "Unauthorized" }, 401);
-
 	await dbDel(c.env.axozap_db, `demon:${id}`);
 	return c.json({ success: true });
 });
@@ -311,6 +342,64 @@ app.get("/make-server-7e6e6986/gddl/:levelId", async (c) => {
 		console.error("❌ Exception in GDDL handler:", error);
 		return c.json({ error: "Failed to fetch GDDL data" }, 500);
 	}
+});
+
+// ── Project55 ──────────────────────────────────────────────────────────────
+// The transformation from raw admin value → visual fill is computed here
+// so no client-side code reveals the curve shape.
+// raw ∈ [0,100]  →  visual = (e^(raw/100) − 1) / (e − 1) × 100  ∈ [0,100]
+function toVisual(raw: number): number {
+	const clamped = Math.max(0, Math.min(100, raw));
+	const normalized = (Math.exp(clamped / 100) - 1) / (Math.E - 1);
+	return Math.pow(normalized, 1.5) * 100;
+}
+
+// Ensure all 10 rows exist (num 1-10 with Percent 0 if missing)
+async function ensureExtraRows(db: D1Database): Promise<void> {
+	for (let i = 1; i <= 10; i++) {
+		await db
+			.prepare("INSERT OR IGNORE INTO extra (num, Percent) VALUES (?, 0)")
+			.bind(i)
+			.run();
+	}
+}
+
+// Public: returns visual fill values only (no raw data exposed)
+app.get("/make-server-7e6e6986/project55", async (c) => {
+	await ensureExtraRows(c.env.axozap_db);
+	const { results } = await c.env.axozap_db
+		.prepare("SELECT num, Percent FROM extra ORDER BY num ASC")
+		.all<{ num: number; Percent: number }>();
+	const bars = results.map((row) => ({
+		num: row.num,
+		fill: Math.round(toVisual(row.Percent)),
+	}));
+	return c.json(bars);
+});
+
+// Admin: returns raw stored values so the admin UI can display/edit them
+app.get("/make-server-7e6e6986/project55/raw", async (c) => {
+	if (!isAuthorized(c)) return c.json({ error: "Unauthorized" }, 401);
+	await ensureExtraRows(c.env.axozap_db);
+	const { results } = await c.env.axozap_db
+		.prepare("SELECT num, Percent FROM extra ORDER BY num ASC")
+		.all<{ num: number; Percent: number }>();
+	return c.json(results);
+});
+
+// Admin: update a single bar's raw percent
+app.put("/make-server-7e6e6986/project55/:num", async (c) => {
+	if (!isAuthorized(c)) return c.json({ error: "Unauthorized" }, 401);
+	const num = parseInt(c.req.param("num"), 10);
+	if (isNaN(num) || num < 1 || num > 10)
+		return c.json({ error: "Invalid bar number (1-10)" }, 400);
+	const body = await c.req.json<{ percent: number }>();
+	const percent = Math.max(0, Math.min(100, Math.round(body.percent)));
+	await c.env.axozap_db
+		.prepare("UPDATE extra SET Percent = ? WHERE num = ?")
+		.bind(percent, num)
+		.run();
+	return c.json({ num, percent });
 });
 
 export default app;

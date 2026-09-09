@@ -1,15 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AxoZap Demons</title>
 
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>AxoZap Demons</title>
-    </head>
+    <script>
+      (function protectConsole() {
+        window.eval = () => null;
+        window.Function = () => () => {};
 
-    <body>
-      <div id="root"></div>
-      <script type="module" src="/src/main.tsx"></script>
-    </body>
-  </html>
-  
+        const blank = () => {};
+        console.log = blank;
+        console.info = blank;
+        console.warn = blank;
+        console.error = blank;
+        console.table = blank;
+
+        setInterval(() => {
+          console.clear();
+        }, 200);
+
+        setInterval(() => {
+          (function() { return false; }['constructor']('debugger')['call']());
+        }, 500);
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
