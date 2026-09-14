@@ -19,6 +19,9 @@ export default function Project55Page() {
       .finally(() => setLoading(false));
   }, []);
 
+  const mainBars = bars.filter((b) => b.num <= 10);
+  const bonusBars = bars.filter((b) => b.num > 10);
+
   return (
     <div className="p55-page">
       <header className="p55-header">
@@ -29,19 +32,42 @@ export default function Project55Page() {
         {loading ? (
           <div className="p55-loading">Loading…</div>
         ) : (
-          <div className="p55-bars">
-            {bars.map((bar) => (
-              <div key={bar.num} className="p55-bar-row">
-                <span className="p55-bar-label">#{bar.num}</span>
-                <div className="p55-track">
-                  <div
-                    className="p55-fill"
-                    style={{ width: `${bar.fill}%` }}
-                  />
+          <>
+            <div className="p55-bars">
+              {mainBars.map((bar) => (
+                <div key={bar.num} className="p55-bar-row">
+                  <span className="p55-bar-label">#{bar.num}</span>
+                  <div className="p55-track">
+                    <div
+                      className="p55-fill"
+                      style={{ width: `${bar.fill}%` }}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {bonusBars.length > 0 && (
+              <>
+                <div className="p55-section-header">
+                  <h2 className="p55-section-title">Bonus Bars</h2>
+                </div>
+                <div className="p55-bars">
+                  {bonusBars.map((bar) => (
+                    <div key={bar.num} className="p55-bar-row">
+                      <span className="p55-bar-label">#{bar.num - 10}</span>
+                      <div className="p55-track">
+                        <div
+                          className="p55-fill"
+                          style={{ width: `${bar.fill}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         )}
       </main>
     </div>

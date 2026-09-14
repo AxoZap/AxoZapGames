@@ -56,32 +56,48 @@ export default function Project55Admin() {
 
   if (loading) return <div className="p55-loading">Loading bars…</div>;
 
+  const mainBars = bars.filter((b) => b.num <= 10);
+  const bonusBars = bars.filter((b) => b.num > 10);
+
+  const renderBarRow = (bar: RawBar, label: string) => (
+    <div key={bar.num} className="p55-admin-row">
+      <span className="p55-admin-label">{label}</span>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        value={bar.Percent}
+        onChange={(e) => handleChange(bar.num, parseInt(e.target.value, 10))}
+        className="p55-admin-slider"
+      />
+      <span className="p55-admin-value">{bar.Percent}%</span>
+      <button
+        className={`p55-admin-save-btn${saved.has(bar.num) ? ' saved' : ''}`}
+        onClick={() => handleSave(bar.num, bar.Percent)}
+        disabled={saving === bar.num}
+      >
+        {saving === bar.num ? 'Saving…' : saved.has(bar.num) ? '✓ Saved' : 'Save'}
+      </button>
+    </div>
+  );
+
   return (
     <div className="p55-admin">
       <h2 className="p55-admin-title">Project 55 — Admin</h2>
+
+      <h3 className="p55-admin-section-title">Main Bars</h3>
       <div className="p55-admin-bars">
-        {bars.map((bar) => (
-          <div key={bar.num} className="p55-admin-row">
-            <span className="p55-admin-label">Bar #{bar.num}</span>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={bar.Percent}
-              onChange={(e) => handleChange(bar.num, parseInt(e.target.value, 10))}
-              className="p55-admin-slider"
-            />
-            <span className="p55-admin-value">{bar.Percent}%</span>
-            <button
-              className={`p55-admin-save-btn${saved.has(bar.num) ? ' saved' : ''}`}
-              onClick={() => handleSave(bar.num, bar.Percent)}
-              disabled={saving === bar.num}
-            >
-              {saving === bar.num ? 'Saving…' : saved.has(bar.num) ? '✓ Saved' : 'Save'}
-            </button>
-          </div>
-        ))}
+        {mainBars.map((bar) => renderBarRow(bar, `Bar #${bar.num}`))}
       </div>
+
+      {bonusBars.length > 0 && (
+        <>
+          <h3 className="p55-admin-section-title" style={{ marginTop: '1.75rem' }}>Bonus Bars</h3>
+          <div className="p55-admin-bars">
+            {bonusBars.map((bar) => renderBarRow(bar, `Bonus #${bar.num - 10}`))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
