@@ -54,8 +54,8 @@ async function isAuthorized(c: any): Promise<boolean> {
 	}
 
 	const token =
-		c.req.header("cf-access-jwt-assertion") || // passed by frontend JS
-		c.req.header("Cf-Access-Jwt-Assertion");   // injected by CF Access proxy
+	c.req.header("cf-access-jwt-assertion") || // passed by frontend JS
+	c.req.header("Cf-Access-Jwt-Assertion");   // injected by CF Access proxy
 
 	if (!token) return false;
 
@@ -90,7 +90,7 @@ async function isAuthorized(c: any): Promise<boolean> {
 				// Convert base64url signature to ArrayBuffer
 				const sigBytes = Uint8Array.from(
 					atob(sigB64.replace(/-/g, "+").replace(/_/g, "/")),
-					(c) => c.charCodeAt(0)
+												 (c) => c.charCodeAt(0)
 				);
 
 				const valid = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", cryptoKey, sigBytes, signingInput);
@@ -119,18 +119,18 @@ async function isAuthorized(c: any): Promise<boolean> {
 // Helper DB functions for D1
 async function dbGetByPrefix(db: D1Database, prefix: string): Promise<any[]> {
 	const { results } = await db
-		.prepare("SELECT value FROM kv_store WHERE key LIKE ?")
-		.bind(prefix + "%")
-		.all();
+	.prepare("SELECT value FROM kv_store WHERE key LIKE ?")
+	.bind(prefix + "%")
+	.all();
 	return results.map((row: any) => JSON.parse(row.value));
 }
 
 async function dbSet(db: D1Database, key: string, value: any): Promise<void> {
 	const valStr = JSON.stringify(value);
 	await db
-		.prepare("INSERT INTO kv_store (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?")
-		.bind(key, valStr, valStr)
-		.run();
+	.prepare("INSERT INTO kv_store (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?")
+	.bind(key, valStr, valStr)
+	.run();
 }
 
 async function dbDel(db: D1Database, key: string): Promise<void> {
@@ -274,8 +274,8 @@ app.get("/make-server-7e6e6986/gddl/:levelId", async (c) => {
 
 		if (GDDL_API_TOKEN) {
 			headers["Authorization"] = GDDL_API_TOKEN.startsWith("Bearer ")
-				? GDDL_API_TOKEN
-				: `Bearer ${GDDL_API_TOKEN}`;
+			? GDDL_API_TOKEN
+			: `Bearer ${GDDL_API_TOKEN}`;
 		}
 
 		// 1. Fetch public level info
@@ -342,64 +342,6 @@ app.get("/make-server-7e6e6986/gddl/:levelId", async (c) => {
 		console.error("❌ Exception in GDDL handler:", error);
 		return c.json({ error: "Failed to fetch GDDL data" }, 500);
 	}
-});
-
-// ── Project55 ──────────────────────────────────────────────────────────────
-// The transformation from raw admin value → visual fill is computed here
-// so no client-side code reveals the curve shape.
-// raw ∈ [0,100]  →  visual = (e^(raw/100) − 1) / (e − 1) × 100  ∈ [0,100]
-function toVisual(raw: number): number {
-	const clamped = Math.max(0, Math.min(100, raw));
-	const normalized = (Math.exp(clamped / 100) - 1) / (Math.E - 1);
-	return Math.pow(normalized, 1.5) * 100;
-}
-
-// Ensure all 10 rows exist (num 1-10 with Percent 0 if missing)
-async function ensureExtraRows(db: D1Database): Promise<void> {
-	for (let i = 1; i <= 10; i++) {
-		await db
-			.prepare("INSERT OR IGNORE INTO extra (num, Percent) VALUES (?, 0)")
-			.bind(i)
-			.run();
-	}
-}
-
-// Public: returns visual fill values only (no raw data exposed)
-app.get("/make-server-7e6e6986/project55", async (c) => {
-	await ensureExtraRows(c.env.axozap_db);
-	const { results } = await c.env.axozap_db
-		.prepare("SELECT num, Percent FROM extra ORDER BY num ASC")
-		.all<{ num: number; Percent: number }>();
-	const bars = results.map((row) => ({
-		num: row.num,
-		fill: Math.round(toVisual(row.Percent)),
-	}));
-	return c.json(bars);
-});
-
-// Admin: returns raw stored values so the admin UI can display/edit them
-app.get("/make-server-7e6e6986/project55/raw", async (c) => {
-	if (!isAuthorized(c)) return c.json({ error: "Unauthorized" }, 401);
-	await ensureExtraRows(c.env.axozap_db);
-	const { results } = await c.env.axozap_db
-		.prepare("SELECT num, Percent FROM extra ORDER BY num ASC")
-		.all<{ num: number; Percent: number }>();
-	return c.json(results);
-});
-
-// Admin: update a single bar's raw percent
-app.put("/make-server-7e6e6986/project55/:num", async (c) => {
-	if (!isAuthorized(c)) return c.json({ error: "Unauthorized" }, 401);
-	const num = parseInt(c.req.param("num"), 10);
-	if (isNaN(num) || num < 1 || num > 10)
-		return c.json({ error: "Invalid bar number (1-10)" }, 400);
-	const body = await c.req.json<{ percent: number }>();
-	const percent = Math.max(0, Math.min(100, Math.round(body.percent)));
-	await c.env.axozap_db
-		.prepare("UPDATE extra SET Percent = ? WHERE num = ?")
-		.bind(percent, num)
-		.run();
-	return c.json({ num, percent });
 });
 
 export default app;

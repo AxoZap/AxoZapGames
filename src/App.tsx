@@ -4,8 +4,6 @@ import { AddDemonForm } from './components/AddDemonForm';
 import { EditDemonForm } from './components/EditDemonForm';
 import { DemonFilters } from './components/DemonFilters';
 import { Flame, Loader2 } from 'lucide-react';
-import Project55Page from './components/Project55Page';
-import Project55Admin from './components/Project55Admin';
 import { adminHeaders, getCFAccessToken } from './adminAuth';
 
 export interface Demon {
@@ -29,12 +27,6 @@ const API_URL = "https://axozap-backend.peteystillwell.workers.dev/make-server-7
 export default function App() {
   // Check if current URL path is /Admin or /admin
   const isAdmin = typeof window !== 'undefined' && window.location.pathname.toLowerCase().startsWith('/admin');
-  const isProject55 = typeof window !== 'undefined' && window.location.pathname.toLowerCase().startsWith('/project55');
-
-  // Render the Project55 public page
-  if (isProject55 && !isAdmin) {
-    return <Project55Page />;
-  }
 
   const [demons, setDemons] = useState<Demon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -325,13 +317,6 @@ export default function App() {
           showFilteredRanks={showFilteredRanks}
           onToggleRanks={() => setShowFilteredRanks(r => !r)}
         />
-
-        {/* Project55 admin panel */}
-        {isAdmin && (
-          <div style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '2rem' }}>
-            <Project55Admin />
-          </div>
-        )}
       </main>
     </div>
   );

@@ -7,7 +7,6 @@ dist/
 GD/build-win/
 worker/node_modules/
 worker/.wrangler/
-worker/src/
 .env
 .env.*
 !.env.example
