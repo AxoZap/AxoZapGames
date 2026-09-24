@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "axozap-games-backend",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-24",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "axozap_games",
+      "database_name": "axozap-games",
+      "database_id": "35ec96aa-f4f8-4f84-a533-0fc779098680"
+    }
+  ],
+  "vars": {
+    "CF_ACCESS_TEAM_DOMAIN": "https://axozapteam.cloudflareaccess.com",
+    "CF_ACCESS_AUD": "6c742e33f93d68c5f16f7d7fc115e120a3878cb20e11052fc086fcd75d627c9f"
+  }
+}

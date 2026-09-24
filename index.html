@@ -1,28 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AxoZap Demons</title>
-
-    <script>
-      (function spamClearConsole() {
-        // Cache native clear before anything can tamper with it
-        const nativeClear = console.clear.bind(console);
-
-        // Clear on every screen repaint (~60-144 times per second)
-        function floodClear() {
-          nativeClear();
-          requestAnimationFrame(floodClear);
-        }
-        requestAnimationFrame(floodClear);
-
-        // Fallback interval (every 10ms) in case the tab is inactive
-        setInterval(nativeClear, 10);
-      })();
-    </script>
+    <meta name="theme-color" content="#0b1c11" />
+    <link rel="icon" type="image/png" href="/avatar.png" />
+    <meta name="description" content="AxoZap's Geometry Dash demons and Celeste golden strawberries." />
+    <title>AxoZap Games</title>
   </head>
-
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

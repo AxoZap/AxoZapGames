@@ -1,20 +1,43 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App'
-import './styles/globals.css'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import './landing.css';
 
-// Deter casual console snooping
-console.log(
-  '%c⚠ Stop!',
-  'color: #ef4444; font-size: 48px; font-weight: 900;'
-);
-console.log(
-  '%cThis browser feature is intended for developers. If someone told you to paste something here to get data or unlock features — that\'s a scam. Nothing here is accessible to you that isn\'t already on the page.',
-  'color: #fff; font-size: 14px; font-family: sans-serif; background: #13131a; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #ef4444;'
-);
+function Home({ admin = false }: { admin?: boolean }) {
+  return (
+    <div className="games-home">
+      <header className="games-home-header">
+        <a className="games-home-logo" href="/" aria-label="AxoZap Games home">
+          <img src="/mylogo.png" alt="AxoZap logo" />
+        </a>
+        <h1>AxoZap - Games</h1>
+      </header>
+      <main className="games-home-main">
+        <div className="games-choices">
+          <a className="games-choice games-choice--celeste" href={admin ? '/celeste/admin' : '/celeste'}>{admin ? 'Celeste Admin' : 'Celeste'}</a>
+          <a className="games-choice games-choice--gd" href={admin ? '/gd/admin' : '/gd'}>{admin ? 'Geometry Dash Admin' : 'Geometry Dash'}</a>
+        </div>
+      </main>
+    </div>
+  );
+}
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+async function start() {
+  const path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  const root = createRoot(document.getElementById('root')!);
+  if (path === '/gd' || path === '/gd/admin') {
+    const [{ default: App }] = await Promise.all([import('./gd/App'), import('./gd/styles.css')]);
+    document.title = 'Geometry Dash | AxoZap Games';
+    root.render(<StrictMode><App /></StrictMode>);
+  } else if (path === '/celeste' || path === '/celeste/admin') {
+    const [{ default: App }] = await Promise.all([import('./celeste/App'), import('./celeste/styles.css')]);
+    document.title = 'Celeste | AxoZap Games';
+    root.render(<StrictMode><App /></StrictMode>);
+  } else if (path === '/' || path === '/admin') {
+    document.title = path === '/admin' ? 'Admin | AxoZap Games' : 'AxoZap Games';
+    root.render(<StrictMode><Home admin={path === '/admin'} /></StrictMode>);
+  } else {
+    root.render(<StrictMode><Home /></StrictMode>);
+  }
+}
+
+void start();
