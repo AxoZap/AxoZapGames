@@ -18,7 +18,6 @@ export function AddGoldModal({ onAdd, onCancel, existingGroups = [], defaultGrou
     baseDifficulty: 'Beginner',
     gmModifier: '',
     date: '',
-    attempts: '',
     clip: '',
     hidden: false,
   });
@@ -30,9 +29,6 @@ export function AddGoldModal({ onAdd, onCancel, existingGroups = [], defaultGrou
     if (!formData.name.trim()) {
       errs.name = 'Name is required (e.g. 7c, 6b)';
     }
-    if (formData.attempts && (isNaN(Number(formData.attempts)) || Number(formData.attempts) < 0)) {
-      errs.attempts = 'Attempts must be a non-negative number';
-    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -40,9 +36,6 @@ export function AddGoldModal({ onAdd, onCancel, existingGroups = [], defaultGrou
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      const attemptsNum =
-        formData.attempts.trim() === '' ? null : Number(formData.attempts);
-
       let finalDifficulty = formData.baseDifficulty;
       if (formData.baseDifficulty === 'GM' && formData.gmModifier.trim()) {
         const mod = formData.gmModifier.trim();
@@ -55,7 +48,6 @@ export function AddGoldModal({ onAdd, onCancel, existingGroups = [], defaultGrou
         completed: formData.completed,
         difficulty: finalDifficulty,
         date: formData.date.trim(),
-        attempts: attemptsNum,
         clip: formData.clip.trim() || null,
         hidden: formData.hidden,
       });
@@ -192,33 +184,15 @@ export function AddGoldModal({ onAdd, onCancel, existingGroups = [], defaultGrou
             </div>
           )}
 
-          <div className="form-row">
-            {/* Attempts */}
-            <div className="form-group">
-              <label className="form-label">Attempts (Optional / Blank)</label>
-              <input
-                type="number"
-                min="0"
-                max="9999999"
-                value={formData.attempts}
-                onChange={(e) => setFormData({ ...formData, attempts: e.target.value })}
-                className="form-input"
-                placeholder="e.g. 1250"
-              />
-              {errors.attempts && <p style={{ color: 'var(--red)', fontSize: '0.8rem', marginTop: '0.25rem' }}>{errors.attempts}</p>}
-            </div>
-
-            {/* Clip */}
-            <div className="form-group">
-              <label className="form-label">YouTube Clip / Video URL (Optional)</label>
-              <input
-                type="url"
-                value={formData.clip}
-                onChange={(e) => setFormData({ ...formData, clip: e.target.value })}
-                className="form-input"
-                placeholder="https://youtu.be/..."
-              />
-            </div>
+          <div className="form-group">
+            <label className="form-label">YouTube Clip / Video URL (Optional)</label>
+            <input
+              type="url"
+              value={formData.clip}
+              onChange={(e) => setFormData({ ...formData, clip: e.target.value })}
+              className="form-input"
+              placeholder="https://youtu.be/..."
+            />
           </div>
 
           <div className="form-row" style={{ marginTop: '0.5rem' }}>

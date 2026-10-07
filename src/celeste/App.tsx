@@ -15,7 +15,6 @@ export interface Gold {
   name: string;
   difficulty: string;
   date: string;
-  attempts?: number | null;
   clip?: string | null;
   hidden?: boolean;
   group_name?: string | null;
@@ -30,7 +29,6 @@ export interface LevelGroup {
   description?: string | null;
   date?: string | null;
   url?: string | null;
-  attempts?: number | null;
   created_at?: string;
 }
 
@@ -60,7 +58,7 @@ export default function App() {
     searchQuery: '',
   });
 
-  const [sortBy, setSortBy] = useState<'custom' | 'name' | 'date' | 'difficulty' | 'attempts'>('custom');
+  const [sortBy, setSortBy] = useState<'custom' | 'name' | 'date' | 'difficulty'>('custom');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
@@ -373,8 +371,6 @@ export default function App() {
         if (a.date.toLowerCase() === 'initial' && b.date.toLowerCase() !== 'initial') return -1;
         if (b.date.toLowerCase() === 'initial' && a.date.toLowerCase() !== 'initial') return 1;
         diff = a.date.localeCompare(b.date);
-      } else if (sortBy === 'attempts') {
-        diff = (a.attempts || 0) - (b.attempts || 0);
       } else if (sortBy === 'difficulty') {
         const getDiffScore = (raw: string) => {
           const s = (raw || '').trim().toLowerCase();

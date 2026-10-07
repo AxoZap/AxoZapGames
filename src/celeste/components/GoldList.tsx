@@ -400,7 +400,7 @@ export function GoldList({
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
               {/* Name */}
-              <th style={thStyle}>Level / Group</th>
+              <th style={{ ...thStyle, minWidth: '220px' }}>Level / Group</th>
 
               {/* Status */}
               <th style={{ ...thStyle, textAlign: 'center', width: '120px' }}>Status</th>
@@ -410,9 +410,6 @@ export function GoldList({
 
               {/* Date */}
               <th style={thStyle}>Date</th>
-
-              {/* Attempts */}
-              <th style={{ ...thStyle, textAlign: 'center', width: '110px' }}>Attempts</th>
 
               {/* Clip / Group URL */}
               <th style={{ ...thStyle, textAlign: 'center', width: '90px' }}>Clip / URL</th>
@@ -523,32 +520,6 @@ export function GoldList({
                       )}
                     </td>
 
-                    {/* Attempts */}
-                    <td style={{ padding: '0.9rem 1.15rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {gold.attempts != null && gold.attempts !== undefined ? (
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            minWidth: '3.6rem',
-                            maxWidth: '5.2rem',
-                            background: 'rgba(255, 255, 255, 0.04)',
-                            border: '1px solid var(--border)',
-                            padding: '0.2rem 0.45rem',
-                            borderRadius: '6px',
-                            fontWeight: 700,
-                            color: '#fff',
-                            fontVariantNumeric: 'tabular-nums',
-                            fontSize: '0.85rem',
-                            textAlign: 'center',
-                          }}
-                        >
-                          {gold.attempts.toLocaleString()}
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-secondary)', opacity: 0.35 }}>—</span>
-                      )}
-                    </td>
-
                     {/* Clip */}
                     <td style={{ padding: '0.9rem 1.15rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {gold.clip ? (
@@ -623,10 +594,6 @@ export function GoldList({
                 : groupLevels.length;
 
               const isGroupCompleted = displayTotalCount > 0 && displayCompletedCount === displayTotalCount;
-
-              // Total attempts: group.attempts override if provided, otherwise sum of member levels
-              const memberAttemptsSum = groupLevels.reduce((sum, g) => sum + (g.attempts || 0), 0);
-              const groupAttempts = meta?.attempts != null ? meta.attempts : (groupLevels.some((g) => g.attempts != null) ? memberAttemptsSum : null);
 
               // Date: only show if explicitly configured on the group/pack (no auto date from inner levels)
               const displayDate =
@@ -778,32 +745,6 @@ export function GoldList({
                       )}
                     </td>
 
-                    {/* Group Attempts */}
-                    <td style={{ padding: '0.95rem 1.15rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {groupAttempts != null ? (
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            minWidth: '3.6rem',
-                            maxWidth: '5.6rem',
-                            background: 'rgba(245, 158, 11, 0.08)',
-                            border: '1px solid rgba(245, 158, 11, 0.3)',
-                            padding: '0.2rem 0.45rem',
-                            borderRadius: '6px',
-                            fontWeight: 700,
-                            color: 'var(--accent)',
-                            fontVariantNumeric: 'tabular-nums',
-                            fontSize: '0.85rem',
-                            textAlign: 'center',
-                          }}
-                        >
-                          {groupAttempts.toLocaleString()}
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-secondary)', opacity: 0.35 }}>—</span>
-                      )}
-                    </td>
-
                     {/* Group URL / Video Link */}
                     <td style={{ padding: '0.95rem 1.15rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {groupUrl ? (
@@ -851,7 +792,6 @@ export function GoldList({
                                   description: '',
                                   date: '',
                                   url: '',
-                                  attempts: null,
                                 });
                               }
                             }}
@@ -986,32 +926,6 @@ export function GoldList({
                               )}
                             </td>
 
-                            {/* Attempts */}
-                            <td style={{ padding: '0.75rem 1.15rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                              {gold.attempts != null && gold.attempts !== undefined ? (
-                                <span
-                                  style={{
-                                    display: 'inline-block',
-                                    minWidth: '3.6rem',
-                                    maxWidth: '5.2rem',
-                                    background: 'rgba(255, 255, 255, 0.04)',
-                                    border: '1px solid var(--border)',
-                                    padding: '0.15rem 0.4rem',
-                                    borderRadius: '6px',
-                                    fontWeight: 700,
-                                    color: '#fff',
-                                    fontVariantNumeric: 'tabular-nums',
-                                    fontSize: '0.82rem',
-                                    textAlign: 'center',
-                                  }}
-                                >
-                                  {gold.attempts.toLocaleString()}
-                                </span>
-                              ) : (
-                                <span style={{ color: 'var(--text-secondary)', opacity: 0.35 }}>—</span>
-                              )}
-                            </td>
-
                             {/* Clip */}
                             <td style={{ padding: '0.75rem 1.15rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
                               {gold.clip ? (
@@ -1064,7 +978,7 @@ export function GoldList({
                     ) : (
                       <tr>
                         <td
-                          colSpan={isAdmin ? 7 : 6}
+                          colSpan={isAdmin ? 6 : 5}
                           style={{
                             padding: '1rem 3rem',
                             color: 'var(--text-secondary)',

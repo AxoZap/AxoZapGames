@@ -15,7 +15,6 @@ export function EditGroupModal({ group, onSave, onCancel }: EditGroupModalProps)
     description: group.description || '',
     date: group.date || '',
     url: group.url || '',
-    attempts: group.attempts != null ? String(group.attempts) : '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -25,9 +24,6 @@ export function EditGroupModal({ group, onSave, onCancel }: EditGroupModalProps)
     if (!formData.name.trim()) {
       errs.name = 'Group name is required';
     }
-    if (formData.attempts && (isNaN(Number(formData.attempts)) || Number(formData.attempts) < 0)) {
-      errs.attempts = 'Attempts must be a non-negative number';
-    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -35,16 +31,12 @@ export function EditGroupModal({ group, onSave, onCancel }: EditGroupModalProps)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      const attemptsNum =
-        formData.attempts.trim() === '' ? null : Number(formData.attempts);
-
       onSave({
         ...group,
         name: formData.name.trim(),
         description: formData.description.trim() || null,
         date: formData.date.trim() || null,
         url: formData.url.trim() || null,
-        attempts: attemptsNum,
       });
     }
   };
@@ -91,52 +83,34 @@ export function EditGroupModal({ group, onSave, onCancel }: EditGroupModalProps)
             />
           </div>
 
-          <div className="form-row">
-            {/* Date */}
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
-                <label className="form-label" style={{ marginBottom: 0 }}>Date</label>
-                <button
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, date: getTodayDateEST() }))}
-                  className="btn btn-secondary btn-sm"
-                  style={{
-                    padding: '0.15rem 0.55rem',
-                    fontSize: '0.75rem',
-                    borderRadius: '5px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.3rem',
-                    lineHeight: '1.3',
-                  }}
-                  title="Fill with today's date in EST"
-                >
-                  <Calendar size={12} />
-                  Date Today
-                </button>
-              </div>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="form-input"
-              />
+          <div className="form-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>Date</label>
+              <button
+                type="button"
+                onClick={() => setFormData((prev) => ({ ...prev, date: getTodayDateEST() }))}
+                className="btn btn-secondary btn-sm"
+                style={{
+                  padding: '0.15rem 0.55rem',
+                  fontSize: '0.75rem',
+                  borderRadius: '5px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  lineHeight: '1.3',
+                }}
+                title="Fill with today's date in EST"
+              >
+                <Calendar size={12} />
+                Date Today
+              </button>
             </div>
-
-            {/* Attempts */}
-            <div className="form-group">
-              <label className="form-label">Group Attempts</label>
-              <input
-                type="number"
-                min="0"
-                max="9999999"
-                value={formData.attempts}
-                onChange={(e) => setFormData({ ...formData, attempts: e.target.value })}
-                className="form-input"
-                placeholder="Total attempts"
-              />
-              {errors.attempts && <p style={{ color: 'var(--red)', fontSize: '0.8rem', marginTop: '0.25rem' }}>{errors.attempts}</p>}
-            </div>
+            <input
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              className="form-input"
+            />
           </div>
 
           {/* Group URL */}

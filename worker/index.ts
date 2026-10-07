@@ -359,7 +359,6 @@ export type Gold = {
   name: string;
   difficulty: string;
   date: string;
-  attempts?: number | null;
   clip?: string | null;
   hidden?: boolean | number;
   group_name?: string | null;
@@ -374,7 +373,6 @@ export type LevelGroup = {
   description?: string | null;
   date?: string | null;
   url?: string | null;
-  attempts?: number | null;
   created_at?: string;
 };
 
@@ -386,7 +384,6 @@ function formatGold(row: any): Gold {
     name: row.name,
     difficulty: row.difficulty,
     date: row.date != null ? String(row.date) : "",
-    attempts: row.attempts != null && row.attempts !== "" ? Number(row.attempts) : null,
     clip: row.clip || null,
     hidden: Boolean(row.hidden),
     group_name: row.group_name ? String(row.group_name).trim() : null,
@@ -403,7 +400,6 @@ function formatGroup(row: any): LevelGroup {
     description: row.description || null,
     date: row.date || null,
     url: row.url || null,
-    attempts: row.attempts != null && row.attempts !== "" ? Number(row.attempts) : null,
     created_at: row.created_at,
   };
 }
@@ -447,10 +443,6 @@ async function handlePostGold(c: any) {
   const name = String(gold.name || "").trim();
   const difficulty = String(gold.difficulty || "Easy").trim();
   const date = String(gold.date || "Initial").trim() || "Initial";
-  const attempts =
-    gold.attempts !== undefined && gold.attempts !== null && gold.attempts !== ""
-      ? Number(gold.attempts)
-      : null;
   const clip = gold.clip ? String(gold.clip).trim() : null;
   const hidden = gold.hidden ? 1 : 0;
   const group_name = gold.group_name && String(gold.group_name).trim() ? String(gold.group_name).trim() : null;
@@ -458,9 +450,9 @@ async function handlePostGold(c: any) {
 
   const result = await db
     .prepare(
-      "INSERT INTO \"Celeste\" (placement, name, difficulty, date, attempts, clip, hidden, group_name, completed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO \"Celeste\" (placement, name, difficulty, date, clip, hidden, group_name, completed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
     )
-    .bind(placement, name, difficulty, date, attempts, clip, hidden, group_name, completed)
+    .bind(placement, name, difficulty, date, clip, hidden, group_name, completed)
     .run();
 
   const newId = result.meta?.last_row_id;
@@ -469,7 +461,7 @@ async function handlePostGold(c: any) {
     .bind(newId)
     .first();
 
-  return c.json(formatGold(created || { id: newId, placement, name, difficulty, date, attempts, clip, hidden, group_name, completed }), 201);
+  return c.json(formatGold(created || { id: newId, placement, name, difficulty, date, clip, hidden, group_name, completed }), 201);
 }
 
 app.post("/api/celeste/golds", handlePostGold);
@@ -488,10 +480,6 @@ async function handlePutGold(c: any) {
   const name = String(gold.name || "").trim();
   const difficulty = String(gold.difficulty || "Easy").trim();
   const date = String(gold.date || "Initial").trim() || "Initial";
-  const attempts =
-    gold.attempts !== undefined && gold.attempts !== null && gold.attempts !== ""
-      ? Number(gold.attempts)
-      : null;
   const clip = gold.clip ? String(gold.clip).trim() : null;
   const hidden = gold.hidden ? 1 : 0;
   const placement = gold.placement != null ? Number(gold.placement) : null;
@@ -501,16 +489,16 @@ async function handlePutGold(c: any) {
   if (placement != null) {
     await db
       .prepare(
-        "UPDATE \"Celeste\" SET placement = ?, name = ?, difficulty = ?, date = ?, attempts = ?, clip = ?, hidden = ?, group_name = ?, completed = ? WHERE id = ?"
+        "UPDATE \"Celeste\" SET placement = ?, name = ?, difficulty = ?, date = ?, clip = ?, hidden = ?, group_name = ?, completed = ? WHERE id = ?"
       )
-      .bind(placement, name, difficulty, date, attempts, clip, hidden, group_name, completed, id)
+      .bind(placement, name, difficulty, date, clip, hidden, group_name, completed, id)
       .run();
   } else {
     await db
       .prepare(
-        "UPDATE \"Celeste\" SET name = ?, difficulty = ?, date = ?, attempts = ?, clip = ?, hidden = ?, group_name = ?, completed = ? WHERE id = ?"
+        "UPDATE \"Celeste\" SET name = ?, difficulty = ?, date = ?, clip = ?, hidden = ?, group_name = ?, completed = ? WHERE id = ?"
       )
-      .bind(name, difficulty, date, attempts, clip, hidden, group_name, completed, id)
+      .bind(name, difficulty, date, clip, hidden, group_name, completed, id)
       .run();
   }
 
@@ -600,17 +588,12 @@ async function handlePostGroup(c: any) {
   const description = group.description ? String(group.description).trim() : null;
   const date = group.date ? String(group.date).trim() : null;
   const url = group.url ? String(group.url).trim() : null;
-  const attempts =
-    group.attempts !== undefined && group.attempts !== null && group.attempts !== ""
-      ? Number(group.attempts)
-      : null;
-
   try {
     const result = await db
       .prepare(
-        "INSERT INTO \"Celeste Groups\" (name, description, date, url, attempts) VALUES (?, ?, ?, ?, ?)"
+        "INSERT INTO \"Celeste Groups\" (name, description, date, url) VALUES (?, ?, ?, ?)"
       )
-      .bind(name, description, date, url, attempts)
+      .bind(name, description, date, url)
       .run();
 
     const newId = result.meta?.last_row_id;
@@ -619,7 +602,7 @@ async function handlePostGroup(c: any) {
       .bind(newId)
       .first();
 
-    return c.json(formatGroup(created || { id: newId, name, description, date, url, attempts }), 201);
+    return c.json(formatGroup(created || { id: newId, name, description, date, url }), 201);
   } catch (err: any) {
     return c.json({ error: err.message || "Failed to create group" }, 400);
   }
@@ -655,17 +638,12 @@ async function handlePutGroup(c: any) {
   const description = group.description ? String(group.description).trim() : null;
   const date = group.date ? String(group.date).trim() : null;
   const url = group.url ? String(group.url).trim() : null;
-  const attempts =
-    group.attempts !== undefined && group.attempts !== null && group.attempts !== ""
-      ? Number(group.attempts)
-      : null;
-
   try {
     await db
       .prepare(
-        "UPDATE \"Celeste Groups\" SET name = ?, description = ?, date = ?, url = ?, attempts = ? WHERE id = ?"
+        "UPDATE \"Celeste Groups\" SET name = ?, description = ?, date = ?, url = ? WHERE id = ?"
       )
-      .bind(newName, description, date, url, attempts, id)
+      .bind(newName, description, date, url, id)
       .run();
 
     // If group name changed, cascade to all gold levels in this group
