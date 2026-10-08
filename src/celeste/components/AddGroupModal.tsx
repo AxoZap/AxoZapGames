@@ -14,6 +14,7 @@ export function AddGroupModal({ onAdd, onCancel }: AddGroupModalProps) {
     description: '',
     date: '',
     url: '',
+    hidden: false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,6 +36,7 @@ export function AddGroupModal({ onAdd, onCancel }: AddGroupModalProps) {
         description: formData.description.trim() || null,
         date: formData.date.trim() || null,
         url: formData.url.trim() || null,
+        hidden: formData.hidden,
       });
     }
   };
@@ -123,6 +125,19 @@ export function AddGroupModal({ onAdd, onCancel }: AddGroupModalProps) {
               className="form-input"
               placeholder="https://youtu.be/... or playlist / spreadsheet link"
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-checkbox">
+              <input
+                type="checkbox"
+                checked={formData.hidden}
+                onChange={(e) => setFormData({ ...formData, hidden: e.target.checked })}
+              />
+              <span style={{ color: formData.hidden ? 'var(--red)' : 'var(--text-primary)', fontWeight: 600 }}>
+                Hide group and all its levels from public pages and search
+              </span>
+            </label>
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>

@@ -603,6 +603,7 @@ export function GoldList({
 
               // Group URL or video
               const groupUrl = meta?.url;
+              const groupIsHidden = Boolean(meta?.hidden);
               const isBeingDragged = draggedTopIndex === topIndex;
               const isDragOver = dragOverTopIndex === topIndex;
 
@@ -623,6 +624,8 @@ export function GoldList({
                       opacity: isBeingDragged ? 0.4 : 1,
                       background: isDragOver
                         ? 'rgba(245, 158, 11, 0.16)'
+                        : groupIsHidden && isAdmin
+                        ? 'rgba(239, 68, 68, 0.06)'
                         : isExpanded
                         ? 'rgba(245, 158, 11, 0.08)'
                         : 'rgba(255, 255, 255, 0.02)',
@@ -630,12 +633,16 @@ export function GoldList({
                       transition: 'background 0.15s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = isExpanded
+                      e.currentTarget.style.background = groupIsHidden && isAdmin
+                        ? 'rgba(239, 68, 68, 0.1)'
+                        : isExpanded
                         ? 'rgba(245, 158, 11, 0.12)'
                         : 'rgba(255, 255, 255, 0.05)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = isExpanded
+                      e.currentTarget.style.background = groupIsHidden && isAdmin
+                        ? 'rgba(239, 68, 68, 0.06)'
+                        : isExpanded
                         ? 'rgba(245, 158, 11, 0.08)'
                         : 'rgba(255, 255, 255, 0.02)';
                     }}
@@ -678,6 +685,11 @@ export function GoldList({
                             <span style={{ color: '#fff', fontWeight: 800, fontSize: '1.08rem', letterSpacing: '0.01em' }}>
                               {item.groupName}
                             </span>
+                            {groupIsHidden && isAdmin && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--red)', fontSize: '0.72rem', fontWeight: 700 }}>
+                                <EyeOff size={12} /> Hidden
+                              </span>
+                            )}
                             <span
                               style={{
                                 background: 'rgba(245, 158, 11, 0.15)',

@@ -19,6 +19,7 @@ The frontend calls the single Worker at `axozap-games-backend.peteystillwell.wor
 npm install
 npm run typegen
 npx wrangler d1 execute axozap-games --local --file worker/migrations/0001_create_games.sql
+npx wrangler d1 execute axozap-games --local --file worker/migrations/0002_hide_celeste_groups.sql
 npm run dev:worker
 ```
 
@@ -29,6 +30,8 @@ In another terminal, run `npm run dev`. Vite proxies `/api` to the local Worker 
 The `axozap-games` Cloudflare Pages project is connected to this repository's `main` branch. Its configured build command is `npm run build` and its output directory is `build`. Pushes to `main` deploy the frontend at `games.axozap.com`.
 
 Deploy the API with `npm run deploy` after authenticating Wrangler. The Worker binding already points to the populated `axozap-games` D1 database. Keep the two old Workers in place until the new site is verified; this project does not change them.
+
+Before deploying a Worker that uses group visibility, apply `worker/migrations/0002_hide_celeste_groups.sql` to the existing remote database with `npx wrangler d1 execute axozap-games --remote --file worker/migrations/0002_hide_celeste_groups.sql`.
 
 The `CF_ACCESS_AUD` in `wrangler.jsonc` is the audience of the Access application currently guarding `/gd/admin` and `/celeste/admin` on `games.axozap.com`. If you replace that application, update the audience and redeploy the Worker. The API validates the Access JWT on every admin write and before returning hidden entries. Separate apps can use optional `CF_ACCESS_AUD_GD` and `CF_ACCESS_AUD_CELESTE` bindings.
 

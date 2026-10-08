@@ -29,6 +29,7 @@ export interface LevelGroup {
   description?: string | null;
   date?: string | null;
   url?: string | null;
+  hidden?: boolean;
   created_at?: string;
 }
 
@@ -99,6 +100,16 @@ export default function App() {
     }
   };
 
+  const refreshGroups = async () => {
+    try {
+      const response = await fetch(`${API_URL}/groups`, { headers: adminHeaders() });
+      if (response.ok) setGroups(await response.json());
+      else console.error('Failed to refresh groups:', response.status);
+    } catch (error) {
+      console.error('Failed to refresh groups:', error);
+    }
+  };
+
   // Reordering persist handler
   const handleReorder = async (
     newGolds: Gold[],
@@ -136,6 +147,7 @@ export default function App() {
       if (response.ok) {
         const newGold = await response.json();
         setGolds((prev) => [...prev, newGold]);
+        await refreshGroups();
         setShowAddModal(false);
         setTargetGroupForAdd('');
       } else {
@@ -159,6 +171,7 @@ export default function App() {
       if (response.ok) {
         const saved = await response.json();
         setGolds((prev) => prev.map((g) => (g.id === saved.id ? saved : g)));
+        await refreshGroups();
         setEditingGold(null);
       } else {
         const err = await response.json();
@@ -223,8 +236,8 @@ export default function App() {
 
   const handleSaveEditGroup = async (updatedGroup: LevelGroup) => {
     try {
-      const response = await fetch(`${API_URL}/groups/${updatedGroup.id}`, {
-        method: 'PUT',
+      const response = await fetch(updatedGroup.id == null ? `${API_URL}/groups` : `${API_URL}/groups/${updatedGroup.id}`, {
+        method: updatedGroup.id == null ? 'POST' : 'PUT',
         headers: adminHeaders(),
         body: JSON.stringify({ group: updatedGroup }),
       });
@@ -233,11 +246,13 @@ export default function App() {
         const saved: LevelGroup = await response.json();
         const oldGroup = groups.find((g) => g.id === saved.id);
 
-        setGroups((prev) => prev.map((g) => (g.id === saved.id ? saved : g)));
+        setGroups((prev) => updatedGroup.id == null
+          ? [...prev, saved]
+          : prev.map((g) => (g.id === saved.id ? saved : g)));
         if (oldGroup && oldGroup.name !== saved.name) {
           // Sync group_name locally on levels
           setGolds((prev) =>
-            prev.map((g) => (g.group_name === oldGroup.name ? { ...g, group_name: saved.name } : g))
+            prev.map((g) => ((g.group_name || '').trim().toLowerCase() === oldGroup.name.trim().toLowerCase() ? { ...g, group_name: saved.name } : g))
           );
         }
         setEditingGroup(null);
@@ -257,7 +272,7 @@ export default function App() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete group "${group.name}"? Levels inside will be ungrouped.`)) {
+    if (!confirm(`Are you sure you want to delete group "${group.name}"? Levels inside will be ungrouped and may become visible publicly.`)) {
       return;
     }
 
@@ -270,7 +285,7 @@ export default function App() {
       if (response.ok) {
         setGroups((prev) => prev.filter((g) => g.id !== group.id));
         setGolds((prev) =>
-          prev.map((g) => (g.group_name === group.name ? { ...g, group_name: null } : g))
+          prev.map((g) => ((g.group_name || '').trim().toLowerCase() === group.name.trim().toLowerCase() ? { ...g, group_name: null } : g))
         );
       } else {
         const err = await response.json();

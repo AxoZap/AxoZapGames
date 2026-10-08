@@ -15,6 +15,7 @@ export function EditGroupModal({ group, onSave, onCancel }: EditGroupModalProps)
     description: group.description || '',
     date: group.date || '',
     url: group.url || '',
+    hidden: Boolean(group.hidden),
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -37,6 +38,7 @@ export function EditGroupModal({ group, onSave, onCancel }: EditGroupModalProps)
         description: formData.description.trim() || null,
         date: formData.date.trim() || null,
         url: formData.url.trim() || null,
+        hidden: formData.hidden,
       });
     }
   };
@@ -66,8 +68,10 @@ export function EditGroupModal({ group, onSave, onCancel }: EditGroupModalProps)
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="form-input"
+              readOnly={group.id == null}
               autoFocus
             />
+            {group.id == null && <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.25rem' }}>Save group settings first, then edit again to rename.</p>}
             {errors.name && <p style={{ color: 'var(--red)', fontSize: '0.8rem', marginTop: '0.25rem' }}>{errors.name}</p>}
           </div>
 
@@ -123,6 +127,19 @@ export function EditGroupModal({ group, onSave, onCancel }: EditGroupModalProps)
               className="form-input"
               placeholder="https://..."
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-checkbox">
+              <input
+                type="checkbox"
+                checked={formData.hidden}
+                onChange={(e) => setFormData({ ...formData, hidden: e.target.checked })}
+              />
+              <span style={{ color: formData.hidden ? 'var(--red)' : 'var(--text-primary)', fontWeight: 600 }}>
+                Hide group and all its levels from public pages and search
+              </span>
+            </label>
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
