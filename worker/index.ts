@@ -13,6 +13,7 @@ type Bindings = {
 	GOOGLE_SHEET_ID?: string;
 	GOOGLE_SHEET_NAME?: string;
 	GDDL_API_TOKEN?: string;
+	ADMIN_PASSWORD?: string;
 };
 
 type Demon = {
@@ -229,8 +230,17 @@ app.get("/api/gd/demons", async (c) => {
 });
 
 app.post("/api/gd/demons", async (c) => {
-	if (!await isAuthorized(c, "gd")) return c.json({ error: "Unauthorized" }, 401);
 	const body = await c.req.json();
+
+	const validPassword =
+	typeof body.password === "string" &&
+	!!c.env.ADMIN_PASSWORD &&
+	body.password === c.env.ADMIN_PASSWORD;
+
+	if (!validPassword && !(await isAuthorized(c, "gd"))) {
+		return c.json({ error: "Unauthorized" }, 401);
+	}
+
 	const demon = body.demon;
 
 	// Fetch existing demons to compute the next sequential integer ID

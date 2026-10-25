@@ -12,7 +12,7 @@
     "api-url": {
       "name": "Cloudflare Worker API Endpoint",
       "type": "string",
-      "default": "https://axozap-backend.peteystillwell.workers.dev/make-server-7e6e6986"
+      "default": "https://axozap-games-backend.peteystillwell.workers.dev/api/gd"
     },
     "admin-password": {
       "name": "Admin Password",
