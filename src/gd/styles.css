@@ -260,6 +260,19 @@ body {
 }
 
 /* Delete button */
+.demon-actions-cell {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: var(--bg-card);
+  box-shadow: -1px 0 var(--border);
+  white-space: nowrap;
+}
+
+th.demon-actions-cell {
+  z-index: 2;
+}
+
 .delete-btn {
   background: none;
   border: none;

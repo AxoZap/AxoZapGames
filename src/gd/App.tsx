@@ -22,7 +22,6 @@ export interface Demon {
   levelId?: string;
   tier?: number | null;
   enjoyment?: number | null;
-  gddl?: { tier: number | null; avgEnjoyment: number | null; fetchedAt: string; status: string } | null;
 }
 
 // Updated to point directly to your Cloudflare Worker backend

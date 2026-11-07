@@ -13,14 +13,6 @@ interface DemonListProps {
   onToggleRanks: () => void;
 }
 
-function SavedGddlStats({ demon }: { demon: Demon }) {
-  const data = demon.gddl;
-  if (!data || data.status !== 'available') return <span style={{ color: 'var(--text-secondary)' }}>—</span>;
-  return <span title={`GDDL snapshot saved ${data.fetchedAt.slice(0, 10)}`} style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-    Tier {data.tier == null ? '—' : Number(data.tier.toFixed(2))} · Enjoyment {data.avgEnjoyment == null ? '—' : `${Number(data.avgEnjoyment.toFixed(2))}/10`}
-  </span>;
-}
-
 export function DemonList({ demons, allDemons, onDelete, onEdit, isUnlocked, showFilteredRanks, onToggleRanks }: DemonListProps) {
   // Always compute trophies from the FULL unfiltered list
   const demonTrophies = useMemo(() => {
@@ -66,7 +58,7 @@ export function DemonList({ demons, allDemons, onDelete, onEdit, isUnlocked, sho
   const isFiltered = demons.length !== allDemons.length;
 
   return (
-    <div className="card" style={{ overflow: 'hidden', borderRadius: '12px', background: 'var(--card-bg)' }}>
+    <div className="card" style={{ overflow: 'hidden', borderRadius: '12px', background: 'var(--bg-card)' }}>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
@@ -102,8 +94,7 @@ export function DemonList({ demons, allDemons, onDelete, onEdit, isUnlocked, sho
               <th style={thStyle}>Attempts</th>
               <th style={{ ...thStyle, textAlign: 'center' }}>My tier</th>
               <th style={{ ...thStyle, textAlign: 'center' }}>My enjoyment</th>
-              <th style={{ ...thStyle, textAlign: 'center' }}>GDDL snapshot</th>
-              {isUnlocked && <th style={{ ...thStyle, textAlign: 'center' }}>Actions</th>}
+              {isUnlocked && <th className="demon-actions-cell" style={{ ...thStyle, textAlign: 'center' }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -244,24 +235,15 @@ export function DemonList({ demons, allDemons, onDelete, onEdit, isUnlocked, sho
 
                   <td style={{ padding: '1rem 1.25rem', textAlign: 'center', fontWeight: 700 }}>{hideDetails ? '—' : demon.tier ?? '—'}</td>
                   <td style={{ padding: '1rem 1.25rem', textAlign: 'center', color: '#f59e0b', whiteSpace: 'nowrap' }}>{!hideDetails && demon.enjoyment != null ? `${demon.enjoyment}/10` : '—'}</td>
-                  {/* Archived reference; personal ratings are stored independently. */}
-                  <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                    {hideDetails ? (
-                      <span style={{ color: 'var(--text-secondary)', opacity: 0.35 }}>—</span>
-                    ) : (
-                      <SavedGddlStats demon={demon} />
-                    )}
-                  </td>
-
                   {/* Admin Actions */}
                   {isUnlocked && (
-                    <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                    <td className="demon-actions-cell" style={{ padding: '1rem 0.75rem', textAlign: 'center' }}>
                       <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-                        <button onClick={() => onEdit(demon.id)} className="edit-btn" style={actionBtnStyle} title="Edit">
-                          <Edit size={16} color="#84cc16" />
+                        <button onClick={() => onEdit(demon.id)} className="edit-btn" style={actionBtnStyle} title="Edit" aria-label={`Edit ${demon.name}`}>
+                          <Edit size={16} color="#84cc16" /> Edit
                         </button>
-                        <button onClick={() => onDelete(demon.id)} className="delete-btn" style={actionBtnStyle} title="Delete">
-                          <Trash2 size={16} color="#ef4444" />
+                        <button onClick={() => onDelete(demon.id)} className="delete-btn" style={actionBtnStyle} title="Delete" aria-label={`Delete ${demon.name}`}>
+                          <Trash2 size={16} color="#ef4444" /> Delete
                         </button>
                       </div>
                     </td>
@@ -294,4 +276,7 @@ const actionBtnStyle: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
+  gap: '0.3rem',
+  color: 'var(--text-primary)',
+  fontSize: '0.78rem',
 };
