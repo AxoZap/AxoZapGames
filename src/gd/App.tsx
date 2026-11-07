@@ -19,7 +19,10 @@ export interface Demon {
   attempts?: number; // Optional now - only for Extreme demons
   placement?: number;
   videoUrl?: string;
-  levelId?: string; // GD Level ID for GDDL lookups
+  levelId?: string;
+  tier?: number | null;
+  enjoyment?: number | null;
+  gddl?: { tier: number | null; avgEnjoyment: number | null; fetchedAt: string; status: string } | null;
 }
 
 // Updated to point directly to your Cloudflare Worker backend

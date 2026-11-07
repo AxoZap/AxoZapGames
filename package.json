@@ -9,7 +9,8 @@
     "dev:worker": "wrangler dev",
     "deploy": "wrangler deploy",
     "typegen": "wrangler types",
-    "deploy:all": "npm run build && wrangler deploy"
+    "deploy:all": "npm run build && wrangler deploy",
+    "test:ratings": "node --test test/demonRatings.test.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

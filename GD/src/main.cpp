@@ -4,6 +4,8 @@
 #include <Geode/utils/async.hpp>
 #include <Geode/ui/TextInput.hpp>
 #include <Geode/ui/Popup.hpp>
+#include <cmath>
+#include <stdexcept>
 
 using namespace geode::prelude;
 
@@ -45,6 +47,8 @@ protected:
 	GJGameLevel* m_level = nullptr;
 	TextInput* m_videoInput = nullptr;
 	TextInput* m_attemptsInput = nullptr;
+	TextInput* m_tierInput = nullptr;
+	TextInput* m_enjoymentInput = nullptr;
 	CCMenuItemToggler* m_moonToggle = nullptr;
 	CCMenuItemToggler* m_weeklyToggle = nullptr;
 	CCMenuItemToggler* m_gauntletToggle = nullptr;
@@ -53,7 +57,7 @@ protected:
 	async::TaskHolder<web::WebResponse> m_listener;
 
 	bool init(GJGameLevel* level) {
-		if (!Popup::init(300.f, 290.f)) return false;
+		if (!Popup::init(300.f, 300.f)) return false;
 
 		m_level = level;
 		this->setTitle("Send to Demon List");
@@ -82,8 +86,27 @@ protected:
 		m_videoInput->setPosition({ width / 2 + 40, height - 85 });
 		m_mainLayer->addChild(m_videoInput);
 
-		// 3. Checkboxes: Moon / Weekly / Gauntlet / Event / Secret (Hidden)
-		float toggleY = height - 122.f;
+		// Personal ratings are saved on AxoZap's site, independently of GDDL.
+		auto tierLabel = CCLabelBMFont::create("My Tier", "bigFont.fnt");
+		tierLabel->setScale(0.35f);
+		tierLabel->setPosition({ 75.f, height - 118.f });
+		m_mainLayer->addChild(tierLabel);
+		m_tierInput = TextInput::create(100.f, "Optional", "chatFont.fnt");
+		m_tierInput->setFilter("0123456789");
+		m_tierInput->setPosition({ 75.f, height - 143.f });
+		m_mainLayer->addChild(m_tierInput);
+
+		auto enjoymentLabel = CCLabelBMFont::create("Enjoyment /10", "bigFont.fnt");
+		enjoymentLabel->setScale(0.35f);
+		enjoymentLabel->setPosition({ 225.f, height - 118.f });
+		m_mainLayer->addChild(enjoymentLabel);
+		m_enjoymentInput = TextInput::create(100.f, "Optional", "chatFont.fnt");
+		m_enjoymentInput->setFilter("0123456789.");
+		m_enjoymentInput->setPosition({ 225.f, height - 143.f });
+		m_mainLayer->addChild(m_enjoymentInput);
+
+		// Checkboxes: Moon / Weekly / Gauntlet / Event / Secret (Hidden)
+		float toggleY = height - 178.f;
 		bool isPlat = m_level->isPlatformer() || m_level->m_levelLength == 5;
 		bool isWeekly = m_level->m_dailyID.value() > 0;
 		bool isGauntlet = m_level->m_gauntletLevel || m_level->m_gauntletLevel2;
@@ -150,7 +173,32 @@ protected:
 
 		std::string attStr = m_attemptsInput->getString();
 		if (!attStr.empty()) {
-			demonObj["attempts"] = std::stoi(attStr);
+			try { demonObj["attempts"] = std::stoi(attStr); }
+			catch (...) { FLAlertLayer::create("Invalid attempts", "Enter a valid whole number of attempts.", "OK")->show(); return; }
+		}
+
+		const auto tierText = m_tierInput->getString();
+		if (!tierText.empty()) {
+			try {
+				const int tier = std::stoi(tierText);
+				if (tier < 1) throw std::invalid_argument("tier");
+				demonObj["tier"] = tier;
+			} catch (...) {
+				FLAlertLayer::create("Invalid tier", "Enter a positive whole-number tier, or leave it blank.", "OK")->show();
+				return;
+			}
+		}
+		const auto enjoymentText = m_enjoymentInput->getString();
+		if (!enjoymentText.empty()) {
+			try {
+				size_t consumed = 0;
+				const double enjoyment = std::stod(enjoymentText, &consumed);
+				if (consumed != enjoymentText.size() || !std::isfinite(enjoyment) || enjoyment < 0 || enjoyment > 10) throw std::invalid_argument("enjoyment");
+				demonObj["enjoyment"] = enjoyment;
+			} catch (...) {
+				FLAlertLayer::create("Invalid enjoyment", "Enter an enjoyment score from 0 to 10, or leave it blank.", "OK")->show();
+				return;
+			}
 		}
 
 		std::string vidUrl = m_videoInput->getString();

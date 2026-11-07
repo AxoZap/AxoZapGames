@@ -1,15 +1,7 @@
 import { Demon } from '../App';
-import { Trophy, Zap, Calendar, Target, Trash2, Star, Moon, Edit, Youtube, Loader2, ExternalLink, Hash, EyeOff } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { GD_API_URL as API_URL } from '../../api';
+import { Trophy, Zap, Calendar, Target, Trash2, Star, Moon, Edit, Youtube, Hash, EyeOff } from 'lucide-react';
+import { useMemo } from 'react';
 
-
-interface GddlData {
-  tier: number | null;
-  avgEnjoyment: number | null;
-  myTier: number | null;
-  enjoyment: number | null;
-}
 
 interface DemonListProps {
   demons: Demon[];
@@ -21,122 +13,12 @@ interface DemonListProps {
   onToggleRanks: () => void;
 }
 
-function GddlInline({ demon }: { demon: Demon }) {
-  const [data, setData] = useState<GddlData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [fetched, setFetched] = useState(false);
-
-  const handleFetch = () => {
-    if (!demon.levelId || demon.rating === 'Moon' || loading) return;
-    setLoading(true);
-    fetch(`${API_URL}/gddl/${demon.levelId}`)
-      .then((r) => r.json())
-      .then((d) => { setData(d); setFetched(true); setLoading(false); })
-      .catch(() => setLoading(false));
-  };
-
-  const tierColor = (tier: number | null) => {
-    if (tier === null) return 'var(--text-secondary)';
-    if (tier <= 3)  return '#22c55e';
-    if (tier <= 6)  return '#86efac';
-    if (tier <= 10) return '#eab308';
-    if (tier <= 15) return '#f97316';
-    if (tier <= 20) return '#ef4444';
-    if (tier <= 30) return '#a855f7';
-    return '#dc2626';
-  };
-
-  if (!demon.levelId || demon.rating === 'Moon') {
-    return <span style={{ color: 'var(--text-secondary)', opacity: 0.4 }}>—</span>;
-  }
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite', color: 'var(--text-secondary)' }} />
-      </div>
-    );
-  }
-
-  if (!fetched) {
-    return (
-      <button
-        onClick={handleFetch}
-        style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid var(--border)',
-          color: 'var(--text-secondary)',
-          padding: '0.3rem 0.65rem',
-          borderRadius: '6px',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          whiteSpace: 'nowrap',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#fff'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-      >
-        Load GDDL
-      </button>
-    );
-  }
-
-  return (
-    <div style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '0.6rem',
-      fontSize: '0.82rem',
-      background: 'rgba(255,255,255,0.03)',
-      padding: '0.3rem 0.6rem',
-      borderRadius: '6px',
-      border: '1px solid var(--border)',
-    }}>
-      {/* GDDL Tier */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '2rem' }}>
-        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tier</span>
-        <span style={{ fontWeight: 700, color: tierColor(data?.tier ?? null) }}>
-          {data?.tier != null ? Math.round(data.tier) : '?'}
-        </span>
-      </div>
-      {/* Avg Enjoyment */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '2.2rem' }}>
-        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Avg Enj</span>
-        <span style={{ fontWeight: 700, color: data?.avgEnjoyment != null ? '#f59e0b' : 'var(--text-secondary)' }}>
-          {data?.avgEnjoyment != null ? Math.round(data.avgEnjoyment) : '—'}
-        </span>
-      </div>
-
-      <div style={{ width: '1px', height: '1.75rem', background: 'var(--border)' }} />
-
-      {/* My Tier */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '2rem' }}>
-        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Mine</span>
-        <span style={{ fontWeight: 700, color: tierColor(data?.myTier ?? null) }}>
-          {data?.myTier != null ? data.myTier : '—'}
-        </span>
-      </div>
-
-      {/* My Enjoyment */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '2rem' }}>
-        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Enj</span>
-        <span style={{ fontWeight: 700, color: data?.enjoyment != null ? '#f59e0b' : 'var(--text-secondary)' }}>
-          {data?.enjoyment != null ? data.enjoyment : '—'}
-        </span>
-      </div>
-
-      <a
-        href={`https://gdladder.com/level/${demon.levelId}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', marginLeft: '0.1rem' }}
-        title="View on GDDL"
-      >
-        <ExternalLink size={11} />
-      </a>
-    </div>
-  );
+function SavedGddlStats({ demon }: { demon: Demon }) {
+  const data = demon.gddl;
+  if (!data || data.status !== 'available') return <span style={{ color: 'var(--text-secondary)' }}>—</span>;
+  return <span title={`GDDL snapshot saved ${data.fetchedAt.slice(0, 10)}`} style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+    Tier {data.tier == null ? '—' : Number(data.tier.toFixed(2))} · Enjoyment {data.avgEnjoyment == null ? '—' : `${Number(data.avgEnjoyment.toFixed(2))}/10`}
+  </span>;
 }
 
 export function DemonList({ demons, allDemons, onDelete, onEdit, isUnlocked, showFilteredRanks, onToggleRanks }: DemonListProps) {
@@ -218,7 +100,9 @@ export function DemonList({ demons, allDemons, onDelete, onEdit, isUnlocked, sho
               <th style={{ ...thStyle, textAlign: 'center' }}>Rating</th>
               <th style={{ ...thStyle, textAlign: 'center' }}>Special</th>
               <th style={thStyle}>Attempts</th>
-              <th style={{ ...thStyle, textAlign: 'center' }}>GDDL</th>
+              <th style={{ ...thStyle, textAlign: 'center' }}>My tier</th>
+              <th style={{ ...thStyle, textAlign: 'center' }}>My enjoyment</th>
+              <th style={{ ...thStyle, textAlign: 'center' }}>GDDL snapshot</th>
               {isUnlocked && <th style={{ ...thStyle, textAlign: 'center' }}>Actions</th>}
             </tr>
           </thead>
@@ -358,12 +242,14 @@ export function DemonList({ demons, allDemons, onDelete, onEdit, isUnlocked, sho
                     )}
                   </td>
 
-                  {/* GDDL */}
+                  <td style={{ padding: '1rem 1.25rem', textAlign: 'center', fontWeight: 700 }}>{hideDetails ? '—' : demon.tier ?? '—'}</td>
+                  <td style={{ padding: '1rem 1.25rem', textAlign: 'center', color: '#f59e0b', whiteSpace: 'nowrap' }}>{!hideDetails && demon.enjoyment != null ? `${demon.enjoyment}/10` : '—'}</td>
+                  {/* Archived reference; personal ratings are stored independently. */}
                   <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
                     {hideDetails ? (
                       <span style={{ color: 'var(--text-secondary)', opacity: 0.35 }}>—</span>
                     ) : (
-                      <GddlInline demon={demon} />
+                      <SavedGddlStats demon={demon} />
                     )}
                   </td>
 

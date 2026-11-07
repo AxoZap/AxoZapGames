@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { GoogleAuth } from "google-auth-library";
+import { ratingsError } from './demonRatings';
 
 type Bindings = {
 	axozap_games: D1Database;
@@ -12,7 +13,6 @@ type Bindings = {
 	GOOGLE_SERVICE_ACCOUNT?: string;
 	GOOGLE_SHEET_ID?: string;
 	GOOGLE_SHEET_NAME?: string;
-	GDDL_API_TOKEN?: string;
 	ADMIN_PASSWORD?: string;
 };
 
@@ -28,6 +28,8 @@ type Demon = {
 	attempts?: number;
 	videoUrl?: string;
 	levelId?: string;
+	tier?: number | null;
+	enjoyment?: number | null;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -120,8 +122,11 @@ async function isAuthorized(c: any, game: "gd" | "celeste"): Promise<boolean> {
 }
 
 // Keep the API's string IDs and booleans while storing typed columns in D1.
-async function getDemons(db: D1Database): Promise<Demon[]> {
-	const { results } = await db.prepare('SELECT * FROM "Geometry Dash" ORDER BY id').all();
+async function getDemons(db: D1Database, id?: string): Promise<Demon[]> {
+	const query = db.prepare(`SELECT d.*, s.tier AS gddl_tier, s.avg_enjoyment AS gddl_avg_enjoyment,
+    s.fetched_at AS gddl_fetched_at, s.status AS gddl_status
+    FROM "Geometry Dash" d LEFT JOIN gd_gddl_snapshots s ON s.level_id = d.level_id ${id ? 'WHERE d.id = ?' : ''} ORDER BY d.id`);
+	const { results } = await (id ? query.bind(Number(id)) : query).all();
 	return results.map((row: any) => ({
 		id: String(row.id),
 		name: row.name,
@@ -134,24 +139,33 @@ async function getDemons(db: D1Database): Promise<Demon[]> {
 		...(row.attempts != null ? { attempts: Number(row.attempts) } : {}),
 		...(row.video_url != null ? { videoUrl: row.video_url } : {}),
 		...(row.level_id != null ? { levelId: row.level_id } : {}),
+		tier: row.tier == null ? null : Number(row.tier),
+		enjoyment: row.enjoyment == null ? null : Number(row.enjoyment),
+		gddl: row.gddl_fetched_at ? {
+			tier: row.rating === "Moon" ? null : row.gddl_tier, avgEnjoyment: row.gddl_avg_enjoyment,
+			fetchedAt: row.gddl_fetched_at, status: row.gddl_status,
+		} : null,
 	}));
 }
 
 async function saveDemon(db: D1Database, demon: Demon & { id: string }): Promise<void> {
 	await db.prepare(`
 		INSERT INTO "Geometry Dash"
-		(id, name, difficulty, rating, gauntlet, weekly, event, hidden, attempts, video_url, level_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		(id, name, difficulty, rating, gauntlet, weekly, event, hidden, attempts, video_url, level_id, tier, enjoyment)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 		name = excluded.name, difficulty = excluded.difficulty, rating = excluded.rating,
 		gauntlet = excluded.gauntlet, weekly = excluded.weekly, event = excluded.event,
 		hidden = excluded.hidden, attempts = excluded.attempts,
-		video_url = excluded.video_url, level_id = excluded.level_id
+		video_url = excluded.video_url, level_id = excluded.level_id,
+		tier = CASE WHEN ? THEN excluded.tier ELSE "Geometry Dash".tier END,
+		enjoyment = CASE WHEN ? THEN excluded.enjoyment ELSE "Geometry Dash".enjoyment END
 	`).bind(
 		Number(demon.id), demon.name, demon.difficulty, demon.rating ?? null,
 		Number(Boolean(demon.gauntlet)), Number(Boolean(demon.weekly)), Number(Boolean(demon.event)),
 		demon.hidden == null ? null : Number(Boolean(demon.hidden)), demon.attempts ?? null,
-		demon.videoUrl ?? null, demon.levelId ?? null
+		demon.videoUrl ?? null, demon.levelId ?? null, demon.tier ?? null, demon.enjoyment ?? null,
+		Number(Object.hasOwn(demon, 'tier')), Number(Object.hasOwn(demon, 'enjoyment'))
 	).run();
 }
 
@@ -242,6 +256,8 @@ app.post("/api/gd/demons", async (c) => {
 	}
 
 	const demon = body.demon;
+	const error = ratingsError(demon);
+	if (error) return c.json({ error }, 400);
 
 	// Fetch existing demons to compute the next sequential integer ID
 	const maxRow = await c.env.axozap_games.prepare('SELECT COALESCE(MAX(id), 0) AS max_id FROM "Geometry Dash"').first<{ max_id: number }>();
@@ -252,7 +268,7 @@ app.post("/api/gd/demons", async (c) => {
 
 	c.executionCtx.waitUntil(appendDemonToSheet(c.env, demonWithId));
 
-	return c.json(demonWithId);
+	return c.json((await getDemons(c.env.axozap_games, demonWithId.id))[0]);
 });
 
 app.put("/api/gd/demons/:id", async (c) => {
@@ -260,10 +276,12 @@ app.put("/api/gd/demons/:id", async (c) => {
 	const id = c.req.param("id");
 	const body = await c.req.json();
 	const demon = body.demon;
+	const error = ratingsError(demon);
+	if (error) return c.json({ error }, 400);
 
 	const demonWithId = { ...demon, id };
 	await saveDemon(c.env.axozap_games, demonWithId);
-	return c.json(demonWithId);
+	return c.json((await getDemons(c.env.axozap_games, demonWithId.id))[0]);
 });
 
 app.delete("/api/gd/demons/:id", async (c) => {
@@ -271,96 +289,6 @@ app.delete("/api/gd/demons/:id", async (c) => {
 	const id = c.req.param("id");
 	await c.env.axozap_games.prepare('DELETE FROM "Geometry Dash" WHERE id = ?').bind(Number(id)).run();
 	return c.json({ success: true });
-});
-
-// GDDL Integration
-let cachedGddlUserId: string | number | null = null;
-
-app.get("/api/gd/gddl/:levelId", async (c) => {
-	const levelId = c.req.param("levelId");
-	if (!levelId || isNaN(Number(levelId))) {
-		return c.json({ error: "Invalid level ID" }, 400);
-	}
-
-	try {
-		// Access environment secret from Cloudflare context (c.env)
-		const GDDL_API_TOKEN = c.env.GDDL_API_TOKEN || "";
-
-		const headers: Record<string, string> = {
-			"Content-Type": "application/json",
-			"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AxoZapDemonsList/1.0",
-		};
-
-		if (GDDL_API_TOKEN) {
-			headers["Authorization"] = GDDL_API_TOKEN.startsWith("Bearer ")
-			? GDDL_API_TOKEN
-			: `Bearer ${GDDL_API_TOKEN}`;
-		}
-
-		// 1. Fetch public level info
-		const levelRes = await fetch(`https://gdladder.com/api/levels/${levelId}`, { headers });
-
-		let tier: number | null = null;
-		let avgEnjoyment: number | null = null;
-		let myTier: number | null = null;
-		let enjoyment: number | null = null;
-
-		if (levelRes.ok) {
-			try {
-				const d = (await levelRes.json()) as any;
-				tier = d.Rating ?? d.rating ?? null;
-				avgEnjoyment = d.Enjoyment ?? d.enjoyment ?? null;
-			} catch (e) {
-				console.error(`⚠️ Level ${levelId} response was not valid JSON`);
-			}
-		}
-
-		// 2. Fetch user's personal rating for this exact level
-		if (GDDL_API_TOKEN) {
-			// Step A: Dynamically resolve User ID if not already cached
-			if (!cachedGddlUserId) {
-				try {
-					const meRes = await fetch("https://gdladder.com/api/user/me", { headers });
-					if (meRes.ok) {
-						const meData = (await meRes.json()) as any;
-						cachedGddlUserId = meData.ID ?? meData.id ?? meData.userID ?? null;
-						console.log("👤 Resolved GDDL User ID from /api/user/me:", cachedGddlUserId);
-					} else {
-						console.error(`⚠️ /api/user/me failed [HTTP ${meRes.status}]`);
-					}
-				} catch (err) {
-					console.error("⚠️ Error calling /api/user/me:", err);
-				}
-			}
-
-			// Step B: Direct lookup for this level ID
-			if (cachedGddlUserId) {
-				const subRes = await fetch(
-					`https://gdladder.com/api/user/${cachedGddlUserId}/submissions/${levelId}`,
-					{ headers }
-				);
-
-				if (subRes.ok) {
-					try {
-						const match = (await subRes.json()) as any;
-						myTier = match.Rating ?? match.rating ?? match.Tier ?? match.tier ?? null;
-						enjoyment = match.Enjoyment ?? match.enjoyment ?? null;
-					} catch (e) {
-						console.error(`⚠️ Failed to parse submission JSON for level ${levelId}`);
-					}
-				} else if (subRes.status === 404) {
-					console.log(`ℹ️ Level ${levelId} has no rating submission by user ${cachedGddlUserId}`);
-				} else {
-					console.error(`⚠️ Fetching level submission failed with HTTP ${subRes.status}`);
-				}
-			}
-		}
-
-		return c.json({ tier, avgEnjoyment, myTier, enjoyment });
-	} catch (error) {
-		console.error("❌ Exception in GDDL handler:", error);
-		return c.json({ error: "Failed to fetch GDDL data" }, 500);
-	}
 });
 
 export type Gold = {

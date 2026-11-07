@@ -17,7 +17,8 @@ export function AddDemonForm({ onAdd, onCancel }: AddDemonFormProps) {
     hidden: false,
     attempts: 0,
     videoUrl: '',
-    levelId: '',
+    tier: '',
+    enjoyment: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -49,6 +50,8 @@ export function AddDemonForm({ onAdd, onCancel }: AddDemonFormProps) {
         weekly: formData.weekly,
         event: formData.event,
         hidden: formData.hidden,
+        tier: formData.tier === '' ? null : Number(formData.tier),
+        enjoyment: formData.enjoyment === '' ? null : Number(formData.enjoyment),
       };
       
       if (formData.difficulty === 'Extreme') {
@@ -57,10 +60,6 @@ export function AddDemonForm({ onAdd, onCancel }: AddDemonFormProps) {
       
       if (formData.videoUrl.trim()) {
         demonData.videoUrl = formData.videoUrl.trim();
-      }
-      
-      if (formData.levelId.trim()) {
-        demonData.levelId = formData.levelId.trim();
       }
       
       onAdd(demonData);
@@ -74,7 +73,8 @@ export function AddDemonForm({ onAdd, onCancel }: AddDemonFormProps) {
         hidden: false,
         attempts: 0,
         videoUrl: '',
-        levelId: '',
+        tier: '',
+        enjoyment: '',
       });
     }
   };
@@ -158,6 +158,16 @@ export function AddDemonForm({ onAdd, onCancel }: AddDemonFormProps) {
           </div>
         )}
 
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="my-tier" className="form-label">My tier (optional)</label>
+            <input id="my-tier" type="number" min="1" step="1" value={formData.tier} onChange={e => setFormData({ ...formData, tier: e.target.value })} className="form-input" placeholder="Your difficulty tier" />
+          </div>
+          <div className="form-group">
+            <label htmlFor="my-enjoyment" className="form-label">My enjoyment (0–10, optional)</label>
+            <input id="my-enjoyment" type="number" min="0" max="10" step="any" value={formData.enjoyment} onChange={e => setFormData({ ...formData, enjoyment: e.target.value })} className="form-input" placeholder="Your enjoyment" />
+          </div>
+        </div>
         {/* Video URL */}
         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
           <label htmlFor="videoUrl" className="form-label">
@@ -170,21 +180,6 @@ export function AddDemonForm({ onAdd, onCancel }: AddDemonFormProps) {
             onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
             className="form-input"
             placeholder="https://youtube.com/watch?v=..."
-          />
-        </div>
-
-        {/* GD Level ID */}
-        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-          <label htmlFor="levelId" className="form-label">
-            GD Level ID (Optional, for GDDL)
-          </label>
-          <input
-            type="text"
-            id="levelId"
-            value={formData.levelId}
-            onChange={(e) => setFormData({ ...formData, levelId: e.target.value })}
-            className="form-input"
-            placeholder="e.g. 12345678"
           />
         </div>
 

@@ -22,9 +22,6 @@ export function EditDemonForm({ demon, onSave, onCancel }: EditDemonFormProps) {
     if (updatedDemon.videoUrl) {
       updatedDemon.videoUrl = updatedDemon.videoUrl.trim();
     }
-    if (updatedDemon.levelId) {
-      updatedDemon.levelId = updatedDemon.levelId.trim();
-    }
     onSave(updatedDemon);
   };
 
@@ -141,17 +138,16 @@ export function EditDemonForm({ demon, onSave, onCancel }: EditDemonFormProps) {
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">GD Level ID (Optional, for GDDL)</label>
-            <input
-              type="text"
-              className="form-input"
-              value={formData.levelId || ''}
-              onChange={(e) => setFormData({ ...formData, levelId: e.target.value })}
-              placeholder="e.g. 12345678"
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="edit-tier" className="form-label">My tier (optional)</label>
+              <input id="edit-tier" type="number" min="1" step="1" className="form-input" value={formData.tier ?? ''} onChange={e => setFormData({ ...formData, tier: e.target.value === '' ? null : Number(e.target.value) })} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="edit-enjoyment" className="form-label">My enjoyment (0–10, optional)</label>
+              <input id="edit-enjoyment" type="number" min="0" max="10" step="any" className="form-input" value={formData.enjoyment ?? ''} onChange={e => setFormData({ ...formData, enjoyment: e.target.value === '' ? null : Number(e.target.value) })} />
+            </div>
           </div>
-
           <div className="modal-actions">
             <button type="submit" className="btn">
               Save Changes
