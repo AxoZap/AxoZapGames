@@ -234,7 +234,7 @@ export function DemonList({ demons, allDemons, onDelete, onEdit, isUnlocked, sho
                   </td>
 
                   <td style={{ padding: '1rem 1.25rem', textAlign: 'center', fontWeight: 700 }}>{hideDetails ? '—' : demon.tier ?? '—'}</td>
-                  <td style={{ padding: '1rem 1.25rem', textAlign: 'center', color: '#f59e0b', whiteSpace: 'nowrap' }}>{!hideDetails && demon.enjoyment != null ? `${demon.enjoyment}/10` : '—'}</td>
+                  <td style={{ padding: '1rem 1.25rem', textAlign: 'center', color: '#f59e0b', whiteSpace: 'nowrap' }}>{!hideDetails && demon.enjoyment != null ? demon.enjoyment : '—'}</td>
                   {/* Admin Actions */}
                   {isUnlocked && (
                     <td className="demon-actions-cell" style={{ padding: '1rem 0.75rem', textAlign: 'center' }}>
