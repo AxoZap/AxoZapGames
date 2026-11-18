@@ -13,8 +13,15 @@ function Home({ admin = false }: { admin?: boolean }) {
       </header>
       <main className="games-home-main">
         <div className="games-choices">
-          <a className="games-choice games-choice--celeste" href={admin ? '/celeste/admin' : '/celeste'}>{admin ? 'Celeste Admin' : 'Celeste'}</a>
-          <a className="games-choice games-choice--gd" href={admin ? '/gd/admin' : '/gd'}>{admin ? 'Geometry Dash Admin' : 'Geometry Dash'}</a>
+          <a className="games-choice games-choice--celeste" href={admin ? '/celeste/admin' : '/celeste'}>
+            <span>{admin ? 'Celeste Admin' : 'Celeste'}</span>
+          </a>
+          <a className="games-choice games-choice--gd" href={admin ? '/gd/admin' : '/gd'}>
+            <span className="cube-outline cube-outline--one" aria-hidden="true" />
+            <span className="cube-outline cube-outline--two" aria-hidden="true" />
+            <span className="cube-outline cube-outline--three" aria-hidden="true" />
+            <span>{admin ? 'Geometry Dash Admin' : 'Geometry Dash'}</span>
+          </a>
         </div>
       </main>
     </div>
